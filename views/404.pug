@@ -1,0 +1,16 @@
+//- views/404.pug
+
+extends ./layout/index
+
+block contenido
+    div(class="py-10 text-center")
+        h1(class="text-6xl my-10 font-extrabold text-fuchsia-600") 404
+        h2(class="text-2xl font-bold text-gray-800") Página No Encontrada
+
+        p(class="text-gray-600 mt-5") Lo sentimos, la página que estás buscando no existe o fue movida.
+
+        //- --- Contenedor para los botones de acción (AHORA ES CONDICIONAL) ---
+        div(class="mt-8 flex justify-center items-center gap-4")
+ 
+            a(href="/mis-actividades" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-md transition-colors") Volver al Inicio
+            a(href="/auth/login" class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-md transition-all") Iniciar Sesión

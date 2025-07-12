@@ -1,0 +1,15 @@
+ul.flex.justify-center.gap-2.mt-8
+  if paginaActual > 1
+    li
+      a(href=`?page=${paginaActual - 1}`, class='bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm hover:bg-gray-300') Anterior
+
+  each num in [...Array(totalPaginas).keys()].map(i => i + 1)
+    li
+      a(
+        class=(paginaActual === num ? 'bg-fuchsia-400 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300') + ' px-3 py-1 rounded-lg text-sm',
+        href='?page=' + num
+      )= num
+
+  if paginaActual < totalPaginas
+    li
+      a(href=`?page=${paginaActual + 1}`, class='bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm hover:bg-gray-300') Siguiente

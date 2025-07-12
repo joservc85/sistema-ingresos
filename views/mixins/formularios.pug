@@ -1,0 +1,15 @@
+//- Archivo: views/mixins/formularios.pug
+//- Aquí guardaremos todos los mixins reutilizables para nuestros formularios.
+
+//- Mixin para generar la lista de prefijos de celular de Colombia
+//- Acepta un parámetro 'prefijoSeleccionado' para marcar una opción como seleccionada.
+mixin prefijosCelular(prefijoSeleccionado)
+    //- Definimos los prefijos en un array para que sea más fácil de administrar
+    - const prefijos = ['300', '301', '302', '303', '304', '305', '310', '311', '312', '313', '314', '315', '316', '317', '318', '319', '320', '321', '322', '323', '324', '350', '351']
+
+    //- Iteramos sobre el array para crear cada <option>
+    each prefijo in prefijos
+        option(
+            value=prefijo,
+            selected= (prefijo === prefijoSeleccionado)
+        ) #{prefijo}

@@ -1,0 +1,77 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10 max-w-7xl mx-auto")
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Inventario&nbsp;
+            span(class="font-normal") General
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        div(class="mt-6 flex justify-start")
+            a(href="/articulos/leer" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                i(class="fas fa-arrow-left")
+                span Regresar a Artículos
+
+        if !articulos || articulos.length === 0
+            div(class="text-center mt-10 bg-white shadow-md p-6 rounded-lg")
+                p(class="text-xl text-gray-600") No hay artículos registrados en el inventario.
+        else
+            div(class="mt-8 bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm mb-8")
+
+                form(method="GET" action="/inventario" class="mb-6 flex flex-wrap gap-4 items-end")
+                    
+                    div(class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end")
+                    
+                        //- Filtro por nombre
+                        div
+                            label(for="nombre" class="block text-sm font-medium text-gray-700 mb-1") Nombre del artículo
+                            input#nombre(type="text", name="nombre", value=nombreFiltro || '', placeholder="Buscar por nombre", class="gap-2 px-3 py-2 border border-gray-300 rounded-md w-72")
+
+                        //- Filtro por categoría
+                        div
+                            label(for="categoria" class="block text-sm font-medium text-gray-700 mb-1") Categoría
+                            select#categoria(name="categoria" class="px-3 py-2 border border-gray-300 rounded-md w-72")
+                                option(value="") -- Todas --
+                                each categoria in categorias
+                                    option(value=categoria.id selected=(categoriaFiltro == categoria.id.toString()))= categoria.nombre_categoria                             
+
+                        //- Botón de buscar
+                        div(class="flex gap-3 mt-4")
+                            a(
+                                href=`/inventario/exportar?nombre=${nombreFiltro}&categoria=${categoriaFiltro}`
+                                class="ml-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all"
+                            )
+                                i(class="fas fa-file-excel mr-2")
+                                | Exportar Excel
+                            button(type="submit" class="bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-4 rounded-md transition-colors cursor-pointer") Buscar
+                            a(href="/inventario" class="flex items-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+                                i(class="fas fa-undo")
+                                span Limpiar
+
+                table(class="min-w-full leading-normal text-sm")
+                    thead
+                        tr
+                            th(class="px-5 py-3 bg-gray-100 text-center text-xs font-bold text-gray-600 uppercase tracking-wider") Categoría
+                            th(class="px-5 py-3 bg-gray-100 text-center text-xs font-bold text-gray-600 uppercase tracking-wider") Nombre
+                            th(class="px-5 py-3 bg-gray-100 text-center text-xs font-bold text-gray-600 uppercase tracking-wider") Unidad
+                            th(class="px-5 py-3 bg-gray-100 text-center text-xs font-bold text-gray-600 uppercase tracking-wider") Stock Mínimo
+                            th(class="px-5 py-3 bg-gray-100 text-center text-xs font-bold text-gray-600 uppercase tracking-wider") Stock Actual
+                            th(class="px-5 py-3 bg-gray-100 text-center text-xs font-bold text-gray-600 uppercase tracking-wider") Estado
+
+                    tbody
+                        each articulo in articulos
+                            tr
+                                td(class="px-5 py-4 border-b text-center text-gray-800")= articulo.categoria ? articulo.categoria.nombre_categoria : 'Sin categoría'
+                                td(class="px-5 py-4 border-b text-center font-semibold text-gray-900")= articulo.nombre_articulo
+                                //-- LÍNEA CORREGIDA --
+                                td(class="px-5 py-4 border-b text-center text-gray-700")= articulo.unidad ? articulo.unidad.nombre + ' (' + articulo.unidad.abreviatura + ')' : 'N/A'
+                                td(class="px-5 py-4 border-b text-center text-gray-700")= articulo.stock_minimo
+                                td(class="px-5 py-4 border-b text-center font-bold #{articulo.stock_actual < articulo.stock_minimo ? 'text-red-600' : 'text-green-600'}")= articulo.stock_actual
+                                td(class="px-5 py-4 border-b text-center")
+                                    span(class=`px-3 py-1 text-xs font-semibold rounded-full ${articulo.stock_actual < articulo.stock_minimo ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`)
+                                        = articulo.stock_actual < articulo.stock_minimo ? 'Stock Bajo' : 'OK'
+            
+            //- Paginación (si existe)
+            if totalPaginas > 1
+                div(class="mt-8")
+                    include ../layout/paginacion

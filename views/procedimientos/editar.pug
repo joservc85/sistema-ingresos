@@ -1,0 +1,65 @@
+//- views/procedimientos/editar.pug
+
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        //- Títulos con el estilo unificado
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Sistema 
+            span(class="font-normal") Ingresos
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        //- Contenedor principal del formulario
+        div(class="mt-8 mx-auto max-w-4xl px-4")
+            //- Botón para Regresar a la lista
+            div(class="flex justify-start mb-6")
+                a(href="/procedimientos/leer" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar
+
+            //- Tarjeta que contiene el formulario
+            div(class="bg-white p-8 rounded-lg shadow-lg")
+                
+                //- Muestra de errores de validación
+                if errores
+                    div(class="mb-6")
+                        each error in errores
+                            div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
+                                svg(class="w-6 h-6 text-red-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+                                    path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
+                                p(class="font-bold")= error.msg
+                
+                //- Formulario de edición. La acción es dinámica y apunta al ID del procedimiento.
+                form(action=`/procedimientos/editar/${procedimiento.id}` method="POST" novalidate)
+                    input(type="hidden" name="_csrf" value= csrfToken)
+
+                    //- Usamos un grid para organizar los campos
+                    div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
+                        
+                        //- Campo Nombre del Procedimiento (con valor pre-cargado)
+                        div
+                            label(for="nombre" class="block text-sm font-medium text-gray-700 mb-1") Nombre del Procedimiento
+                            input#nombre(type="text", name="nombre", placeholder="Nombre del procedimiento", value=procedimiento.nombre, class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                        
+                        //- Campo para seleccionar el Precio (con valor pre-seleccionado)
+                        div(class="flex flex-col gap-1")
+                            label(for="precioExistente" class="block text-sm font-medium text-gray-700") Precio Asignado
+                            select#precioExistente(name="precioExistente" class="w-full h-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                                option(value="") -- Seleccione un Precio --
+                                each precio in precios
+                                    //- La lógica 'selected' elige la opción correcta basada en el precioId del procedimiento
+                                    option(value=precio.id selected=(procedimiento.precioId && procedimiento.precioId.toString() === precio.id.toString()))= `${precio.nombre || 'Precio'} - $ ${parseFloat(precio.monto).toLocaleString('es-CO')} COP`
+                        
+                        //- Campo para el estado Activo/Inactivo
+                        div(class="md:col-span-2 mt-4")
+                            div(class="flex items-center")
+                                input#activo(type="checkbox" name="activo" class="h-5 w-5 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded" checked=procedimiento.activo)
+                                label(for="activo" class="ml-3 block text-sm font-medium text-gray-700") Procedimiento Activo
+
+                    //- Botones de acción
+                    div(class="mt-8 flex justify-end gap-4")
+                        a(href="/procedimientos/leer" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md transition-colors") Cancelar
+                        
+                        //- El botón de submit ahora dice "Guardar Cambios"
+                        input(type="submit", value="Guardar Cambios", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer transition-all")

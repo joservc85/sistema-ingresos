@@ -1,0 +1,53 @@
+//- views/admin/crear-usuario.pug
+
+extends ../layout/index
+
+block contenido
+    div(class="py-10 max-w-7xl mx-auto px-4")
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Sistema 
+            span(class="font-normal") Ingresos
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        // Mostramos los errores de validación si existen
+        if errores
+            div(class="max-w-md mx-auto my-6")
+                each error in errores
+                    div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
+                        p(class="font-bold")= error.msg
+
+        div(class="mt-8 mx-auto max-w-md")
+            div(class="bg-white py-8 px-6 shadow-xl rounded-2xl")
+                //- CAMBIO: La acción del formulario ahora apunta a la ruta de admin
+                form(method="POST" action=action novalidate class="space-y-6")
+                    input(type="hidden" name="_csrf" value= csrfToken)
+                    
+                    div
+                        label(for="nombre" class="block text-sm font-medium text-gray-700") Nombre Completo
+                        input#nombre(type="text" name="nombre" placeholder="Nombre del Usuario" value=usuario.nombre || '' class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+
+                    div
+                        label(for="username" class="block text-sm font-medium text-gray-700") Nombre de Usuario
+                        input#username(type="text" name="username" placeholder="Ej: jramon" value=usuario.username || '' class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+
+                    //- ¡NUEVO CAMPO! Un select para elegir el rol del usuario
+                    div
+                        label(for="rolId" class="block text-sm font-medium text-gray-700") Rol del Usuario
+                        select#rolId(name="rolId" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white")
+                            option(value="" disabled selected) -- Seleccione un Rol --
+                            //- Hacemos un bucle sobre la variable 'roles' que pasamos desde el controlador
+                            each rol in roles
+                                option(value=rol.id, selected=(usuario.rolId == rol.id) ? true : false)= rol.nombre
+                    
+                    div
+                        label(for="password" class="block text-sm font-medium text-gray-700") Contraseña
+                        input#password(type="password" name="password" placeholder="Mínimo 6 caracteres" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+
+                    div
+                        label(for="repetir_password" class="block text-sm font-medium text-gray-700") Repetir Contraseña
+                        input#repetir_password(type="password" name="repetir_password" placeholder="Repite la contraseña" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+
+                    div(class="flex items-center justify-between mt-6")
+                        //- CAMBIO: El enlace de "Ya tienes cuenta" ahora es un botón de "Cancelar"
+                        a(href="/admin/usuarios" class="text-gray-600 hover:text-gray-900") Cancelar
+                        input(type="submit" value="Guardar Usuario" class="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-2 px-6 rounded-lg cursor-pointer")

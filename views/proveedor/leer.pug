@@ -1,0 +1,111 @@
+//- views/proveedor/leer.pug
+//- Hereda directamente del layout principal
+
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        //- Títulos con el estilo unificado
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Sistema 
+            span(class="font-normal") Gastos
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        //- Contenedor principal
+        div(class="mt-8 mx-auto max-w-7xl px-4")
+            //- Botón "Nuevo Proveedor" con el estilo moderno
+            div(class="flex justify-start mb-6")
+                a(href="/proveedor/crear" class="flex items-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-md transition-all")
+                    i(class="fas fa-plus")
+                    span Nuevo Proveedor
+
+            //- Mensaje para cuando no hay proveedores registrados
+            if !proveedores || !proveedores.length
+                div(class="text-center py-10")
+                    p(class="text-xl text-gray-600") No hay proveedores registrados todavía.
+                    a(href="/proveedor/crear" class="mt-4 inline-block bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-4 rounded-md transition-colors") ¡Registra el primero!
+            else
+                //- Contenedor de las tarjetas de proveedores
+                div(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6") 
+                    each proveedor in proveedores
+                        //- Tarjeta individual de proveedor
+                        div(class="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-300 hover:-translate-y-1")
+                            div(class="p-6")
+                                //- Razón Social
+                                div(class="mb-4")
+                                    p(class="text-lg font-bold text-fuchsia-700 truncate")= proveedor.razon_social
+                                    p(class="text-sm text-gray-500") Proveedor
+
+                                //- Datos de contacto e identificación con iconos
+                                div(class="space-y-3 text-sm")
+                                    div(class="flex items-center gap-2")
+                                        i(class="fas fa-id-card text-gray-400 w-4")
+                                        span(class="text-gray-700")= `${proveedor.tipo_documento}: ${proveedor.numero_documento}`
+                                    div(class="flex items-center gap-2")
+                                        i(class="fas fa-phone-alt text-gray-400 w-4")
+                                        span(class="text-gray-700")= proveedor.telefono || 'No registrado'
+                                    div(class="flex items-center gap-2")
+                                        i(class="fas fa-envelope text-gray-400 w-4")
+                                        a(href=`mailto:${proveedor.email}` class="text-sky-600 hover:underline truncate")= proveedor.email || 'No registrado'
+                                
+                                //- Estado y Acciones
+                                div(class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center")
+                                    //- Insignia de Estado (Activo/Inactivo)
+                                    span(class=`${proveedor.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-xs font-medium px-2.5 py-1 rounded-full`)= proveedor.activo ? 'Activo' : 'Inactivo' 
+                                    
+                                    //- Botones de acción
+                                    if usuario && usuario.role && usuario.role.nombre === 'Admin'
+                                        div(class="flex items-center space-x-2")
+                                            a(href=`/proveedor/editar/${proveedor.id}` title="Editar" class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors")
+                                                i(class="fas fa-pencil-alt text-sm")
+                                            
+                                            form(method="POST", action=`/proveedor/eliminar/${proveedor.id}`, class="form-eliminar")
+                                                input(type="hidden", name="_csrf", value=csrfToken)
+                                                button(type="submit" title="Eliminar" class="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors cursor-pointer")
+                                                    i(class="fas fa-trash-alt text-sm")
+                                    else
+                                        div(class="flex items-center space-x-2")
+                                            a(href=`/proveedor/editar/${proveedor.id}` title="Editar" class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors")
+                                                i(class="fas fa-pencil-alt text-sm")
+                                                
+                                            form.form-eliminar(method="POST", action="#")
+                                                input(type="hidden" name="_csrf" value=csrfToken)
+                                                button(type="button" class="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 text-lg cursor-not-allowed" title="No tienes permiso para eliminar" disabled)
+                                                    i(class="fas fa-trash-alt text-sm")
+                                            
+                
+                //- Paginación
+                if totalPaginas > 1
+                    div(class="mt-8")
+                        include ../layout/paginacion
+
+//- Mantenemos tu bloque de scripts, ajustando los colores
+block scripts
+    if query.guardado
+        script.
+            Swal.fire({ icon: 'success', title: '¡Registro exitoso!', text: 'El proveedor fue registrado correctamente.', confirmButtonColor: '#a21caf' });
+            if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('guardado'); window.history.replaceState({}, document.title, url.pathname); }
+    if query.actualizado
+        script.
+            Swal.fire({ icon: 'success', title: '¡Actualización exitosa!', text: 'Los datos del proveedor fueron actualizados.', confirmButtonColor: '#a21caf' });
+            if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('actualizado'); window.history.replaceState({}, document.title, url.pathname); }
+    if query.eliminado
+        script.
+            Swal.fire({ icon: 'success', title: '¡Eliminado!', text: 'El proveedor ha sido eliminado correctamente.', confirmButtonColor: '#a21caf' });
+            if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('eliminado'); window.history.replaceState({}, document.title, url.pathname); }
+
+    //- Script para la confirmación de eliminación
+    script.
+        document.addEventListener('DOMContentLoaded', () => {
+            const formularios = document.querySelectorAll('.form-eliminar');
+            formularios.forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault(); 
+                    Swal.fire({
+                        title: '¿Estás seguro?', text: 'Esta acción no se puede deshacer', icon: 'warning',
+                        showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+                    }).then((result) => { if (result.isConfirmed) { form.submit(); } });
+                });
+            });
+        });

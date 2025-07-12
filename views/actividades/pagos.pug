@@ -1,0 +1,119 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Reporte 
+            span(class="font-normal") de Pagos Diarios
+
+        //- Filtros
+        form(method="GET" action="/actividades/pagos" class="mb-8 bg-white p-6 rounded-lg shadow-md flex flex-wrap gap-4 items-end")
+            input(type="hidden" name="_csrf" value=csrfToken)
+            
+            div
+                label(for="fechaInicio" class="block text-sm font-medium text-gray-700") Desde:
+                input(type="date" name="fechaInicio" value=fechaInicio class="px-3 py-2 border border-gray-300 rounded-md w-72")
+
+            div
+                label(for="fechaFin" class="block text-sm font-medium text-gray-700") Hasta:
+                input(type="date" name="fechaFin" value=fechaFin class="px-3 py-2 border border-gray-300 rounded-md w-72")
+
+            div
+                label(for="personalId" class="block text-sm font-medium text-gray-700") Personal:
+                select(name="personalId" class="px-3 py-2 border border-gray-300 rounded-md w-72")
+                    option(value="") -- Todos --
+                    each persona in personal
+                        option(value=persona.id selected=(personalSeleccionado == persona.id.toString()))= persona.nombre
+
+            button(type="submit" class="bg-fuchsia-600 text-white px-4 py-2 rounded-md font-bold hover:bg-fuchsia-700 transition") Buscar
+            a(href=`/actividades/pagos/exportar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&personalId=${personalSeleccionado}` 
+                class="ml-auto bg-green-600 text-white px-4 py-2 rounded-md font-bold hover:bg-green-700 transition") 
+                    i(class="fas fa-file-excel mr-2")
+                    | Exportar a Excel
+
+        //- AQUÍ COMIENZA LA NUEVA ESTRUCTURA DEL REPORTE
+        div(class="space-y-8 mt-8")
+            if !resumenPagos || resumenPagos.length === 0
+                div(class="bg-white p-10 rounded-lg shadow text-center")
+                    p(class="text-gray-500") No se encontraron pagos en el rango indicado.
+            else
+                each persona in resumenPagos
+                    div(class="bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-fuchsia-500")
+                        //- Encabezado con el nombre del personal
+                        div(class="bg-gray-50 p-4 border-b")
+                            h3(class="text-xl font-bold text-gray-800")= persona.nombre
+                        
+                        //- Sección de Ganancias (Actividades)
+                        div(class="p-4 md:p-6")
+                            h4(class="text-gray-600 font-bold text-lg mb-3") (+) Ganancias por Actividades
+                            if persona.actividades.length > 0
+                                div(class="overflow-x-auto")
+                                    table(class="w-full text-sm text-left")
+                                        thead(class="bg-slate-100 text-slate-600 uppercase")
+                                            tr
+                                                th(class="px-4 py-2") Fecha
+                                                th(class="px-4 py-2") Procedimiento
+                                                th(class="px-4 py-2 text-right") Ganancia
+                                        tbody
+                                            each act in persona.actividades
+                                                tr.border-b
+                                                    td(class="px-4 py-2")= new Date(act.createdAt).toLocaleDateString('es-VE')
+                                                    td(class="px-4 py-2")= act.procedimiento.nombre
+                                                    td(class="px-4 py-2 text-right text-green-600 font-medium") $#{parseFloat(act.gananciaPersonal).toLocaleString('es-CO')}
+                                    tfoot
+                                        tr(class="bg-slate-100 font-semibold")
+                                            td(colspan="2" class="text-right px-4 py-2") Subtotal Ganancias 
+                                            td(class="text-right px-4 py-2 text-green-700") $#{parseFloat(persona.totalGanancias).toLocaleString('es-CO')}
+                            else
+                                p(class="text-sm text-gray-500 italic px-4") Sin actividades en este período.
+
+                        //- Sección de Deducciones (Vales)
+                        div(class="p-4 md:p-6 border-t")
+                            h4(class="text-gray-600 font-bold text-lg mb-3") (-) Deducciones por Vales
+                            if persona.vales.length > 0
+                                div(class="overflow-x-auto")
+                                    table(class="w-full text-sm text-left")
+                                        thead(class="bg-slate-100 text-slate-600 uppercase")
+                                            tr
+                                                th(class="px-4 py-2") Fecha
+                                                th(class="px-4 py-2") Descripción
+                                                th(class="px-4 py-2 text-right") Monto
+                                        tbody
+                                            each vale in persona.vales
+                                                tr.border-b
+                                                    td(class="px-4 py-2")= new Date(vale.createdAt).toLocaleDateString('es-VE')
+                                                    td(class="px-4 py-2")= vale.descripcion
+                                                    td(class="px-4 py-2 text-right text-red-600 font-medium") -$#{parseFloat(vale.vales).toLocaleString('es-CO')}
+                                    tfoot
+                                        tr(class="bg-slate-100 font-semibold")
+                                            td(colspan="2" class="text-right px-4 py-2") Subtotal Vales
+                                            td(class="text-right px-4 py-2 text-red-700") -$#{parseFloat(persona.totalVales).toLocaleString('es-CO')}
+                            else
+                                p(class="text-sm text-gray-500 italic px-4") Sin vales en este período.
+
+                        //- Total a Pagar
+                        div(class="bg-gray-800 text-white p-4 flex justify-end items-center gap-4")
+                            h4(class="text-lg font-bold") Pago Neto a Realizar:
+                            span(class="text-2xl font-extrabold text-fuchsia-400") $#{parseFloat(persona.pagoNeto).toLocaleString('es-CO')}
+        
+        //- Resumen Total General
+        if resumenPagos && resumenPagos.length > 0
+            div(class="mt-10 bg-gray-800 text-white p-6 rounded-lg shadow-xl")
+                h3(class="text-2xl font-extrabold border-b border-gray-600 pb-3 mb-4") Resumen General del Período
+                div(class="space-y-3 text-lg")
+                    div(class="flex justify-between items-center")
+                        span(class="font-medium text-gray-300") Total Ganancias (Todo el Personal):
+                        span(class="font-bold text-green-400") $#{parseFloat(granTotalGanancias).toLocaleString('es-CO')}
+                    
+                    div(class="flex justify-between items-center")
+                        span(class="font-medium text-gray-300") Total Vales (Todo el Personal):
+                        span(class="font-bold text-red-400") -$#{parseFloat(granTotalVales).toLocaleString('es-CO')}
+
+                    div(class="flex justify-between items-center border-t border-gray-600 pt-3 mt-3")
+                        span(class="font-bold text-xl") Total Neto General a Pagar:
+                        span(class="font-extrabold text-2xl text-fuchsia-400") $#{parseFloat(granTotalNeto).toLocaleString('es-CO')}
+        
+        //- Paginación
+        if totalPaginas > 1
+            div(class="mt-10")
+                include ../layout/paginacion

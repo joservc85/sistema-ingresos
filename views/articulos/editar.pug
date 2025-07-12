@@ -1,0 +1,92 @@
+//- views/articulos/editar.pug
+
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        //- Títulos con el estilo unificado
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Sistema 
+            span(class="font-normal") Gastos
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        //- Contenedor principal del formulario
+        div(class="mt-8 mx-auto max-w-4xl px-4")
+            //- Botón para Regresar a la lista
+            div(class="flex justify-start mb-6")
+                a(href="/articulos/leer" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar
+
+            //- Tarjeta que contiene el formulario
+            div(class="bg-white p-8 rounded-lg shadow-lg")
+                
+                //- Muestra de errores de validación
+                if errores
+                    div(class="mb-6")
+                        each error in errores
+                            div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
+                                svg(class="w-6 h-6 text-red-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+                                    path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
+                                p(class="font-bold")= error.msg
+                
+                //- Formulario de edición
+                form(action=`/articulos/editar/${articulo.id}` method="POST" novalidate)
+                    input(type="hidden" name="_csrf" value= csrfToken)
+
+                    //- Usamos un grid para organizar los campos
+                    div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
+                        //- Campo Nombre
+                        div
+                            label(for="nombre_articulo" class="block text-sm font-medium text-gray-700 mb-1") Nombre del Artículo / Concepto
+                            input#nombre_articulo(type="text", name="nombre_articulo", placeholder="Ej: Tinte Igora, Pago Alquiler", value= articulo.nombre_articulo || '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400")
+                        
+                        //- Campo Unidad de Medida
+                        //- Campo Unidad de Medida
+                        div
+                            label(for="unidad_medida_Id" class="block text-sm font-medium text-gray-700 mb-1") Unidad de Medida
+                            select#unidad_medida_Id(name="unidad_medida_Id" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400" required)
+                                option(value="") -- Seleccione una Unidad --
+                                each unidad in unidad_medida
+                                    option(
+                                        value=unidad.id
+                                        selected=(articulo && articulo.unidad_medida_Id == unidad.id ? true : false) 
+                                    )= `${unidad.nombre} (${unidad.abreviatura})` 
+                        //- Campo Descripción (ocupa ambas columnas)
+                        div(class="md:col-span-2")
+                            label(for="descripcion" class="block text-sm font-medium text-gray-700 mb-1") Descripción (Opcional)
+                            textarea#descripcion(name="descripcion", rows="3", placeholder="Detalles del artículo...", class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400")= articulo.descripcion || ''
+                        
+                        //-  Campo Categoría (con la categoría del artículo pre-seleccionada)
+                        div(class="md:col-span-2")
+                            label(for="categoriaId" class="block text-sm font-medium text-gray-700 mb-1") Categoría
+                            select#categoriaId(name="categoriaId" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400" required)
+                                option(value="") -- Seleccione una categoría --
+                                each categoria in categorias
+                                    option(
+                                        value=categoria.id 
+                                        selected=(articulo.categoriaId == categoria.id)
+                                    )= categoria.nombre_categoria
+                
+                        //- Campo Stock Mínimo
+                        div
+                            label(for="stock_minimo" class="block text-sm font-medium text-gray-700 mb-1") Stock Mínimo
+                            input#stock_minimo(type="number", name="stock_minimo", placeholder="5", value= articulo.stock_minimo || 0, class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400")
+
+                        //-  Campo Stock Actual
+                        div
+                            label(for="stock_actual" class="block text-sm font-medium text-gray-700 mb-1") Stock Actual
+                            input#stock_actual(type="number", name="stock_actual", placeholder="0", value= articulo.stock_actual || 0, class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-400")
+                            
+                        //- Interruptor para el estado (Activo/Inactivo)
+                        div(class="mt-6 border-t border-gray-200 pt-6")
+                            label(for="activo" class="block text-sm font-medium text-gray-700 mb-2") Estado
+                            div(class="flex items-center")
+                                input#activo(type="checkbox" name="activo" checked=articulo.activo class="h-5 w-5 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded")
+                                label(for="activo" class="ml-3 text-gray-900") Marcar como Activo
+
+                    //- Botones de acción
+                    div(class="mt-8 flex justify-end gap-4")
+                        a(href="/articulos/leer" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md transition-colors") Cancelar
+                                
+                        input(type="submit", value="Guardar Cambios", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer transition-all")

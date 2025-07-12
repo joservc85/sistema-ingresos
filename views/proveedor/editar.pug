@@ -1,0 +1,70 @@
+//- views/proveedor/editar.pug
+
+extends ../layout/index
+
+include ../mixins/formularios
+
+block contenido
+    div(class="py-10")
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Sistema 
+            span(class="font-normal") Ingresos
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        div(class="mt-8 mx-auto max-w-4xl px-4")
+            div(class="bg-white p-8 rounded-lg shadow-lg")
+                //- Muestra de errores de validación
+                if errores
+                    div(class="mb-6")
+                        each error in errores
+                            div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
+                                svg(class="w-6 h-6 text-red-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor")
+                                    path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
+                                p(class="font-bold")= error.msg
+
+                form(action=`/proveedor/editar/${proveedor.id}` method="POST" novalidate)
+                    input(type="hidden" name="_csrf" value= csrfToken)
+
+                    div(class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8")
+                        
+                        //- Razón Social (ocupa dos columnas)
+                        div(class="md:col-span-2 flex flex-col gap-1")
+                            label(for="razon_social" class="block text-sm font-medium text-gray-700") Razón Social o Nombre Completo
+                            input#razon_social(type="text", name="razon_social", placeholder="Nombre de la empresa o persona", value= proveedor ? proveedor.razon_social : '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                        
+                        //- Tipo de Documento
+                        div(class="flex flex-col gap-1")
+                            label(for="tipo_documento" class="block text-sm font-medium text-gray-700") Tipo de Documento
+                            select#tipo_documento(name="tipo_documento" class="w-full h-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 truncate min-w-0")
+                                option(value="") -- Seleccione --
+                                option(value="NIT" selected=(proveedor && proveedor.tipo_documento === 'NIT')) NIT (Número de Identificación Tributaria)
+                                option(value="CC" selected=(proveedor && proveedor.tipo_documento === 'CC')) C.C. (Cédula de Ciudadanía)
+                                option(value="CE" selected=(proveedor && proveedor.tipo_documento === 'CE')) C.E. (Cédula de Extranjería)
+                        
+                        //- Número de Documento
+                        div(class="flex flex-col gap-1")
+                            label(for="numero_documento" class="block text-sm font-medium text-gray-700") Número de Documento
+                            input#numero_documento(type="text", name="numero_documento", placeholder="Ej: 900123456-1 ó 12345678", value= proveedor ? proveedor.numero_documento : '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                        
+                        //- Correo (Opcional)
+                        div(class="flex flex-col gap-1")
+                            label(for="email" class="block text-sm font-medium text-gray-700") Correo Electrónico (Opcional)
+                            input#email(type="email", name="email", placeholder="contacto@empresa.com", value= proveedor ? proveedor.email : '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+
+                        //- Teléfono (Opcional)
+                        div(class="flex flex-col gap-1")
+                            label(for="telefono" class="block text-sm font-medium text-gray-700") Teléfono (Opcional)
+                            div(class="flex items-center")
+                                select#prefijo_telefono(name="prefijo_telefono" class="h-full px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                                    +prefijosCelular(proveedor ? proveedor.prefijo_telefono : '')
+                                input#telefono(type="text", name="telefono", placeholder="Número de celular", value= proveedor ? proveedor.telefono : '', class="w-full px-3 py-2 border border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+
+                        //- Campo Activo (Checkbox)
+                        div(class="md:col-span-2 flex items-center gap-3 pt-4 border-t border-gray-200")
+                            input#activo(type="checkbox", name="activo", class="h-5 w-5 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded" checked=proveedor && proveedor.activo)
+                            label(for="activo" class="text-sm font-medium text-gray-700") Proveedor Activo
+                    
+                    //- Botones de acción
+                    div(class="mt-8 flex justify-end gap-4")
+                        a(href="/proveedor/leer" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md transition-colors") Cancelar
+                        input(type="submit", value="Guardar Cambios", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer transition-all")
