@@ -4,14 +4,13 @@ import procedimientos from "./procedimientos.js";
 import precios from "./precios.js";
 import clientes from "./clientes.js";
 import personals from "./personal.js";
-import proveedores from "./proveedores.js";
 import articulos from "./articulos.js";
 import categorias from "./categorias.js";
 import unidades_de_medida from "./unidades_de_medida.js";
 
 import db from '../config/db.js';
 
-import { Rol, Usuario, Procedimiento, Precio, Cliente, Personal, Proveedor, Articulo, CategoriaArticulo, UnidadDeMedida } from '../models/index.js';
+import { Rol, Usuario, Procedimiento, Precio, Cliente, Personal, Articulo, CategoriaArticulo, UnidadDeMedida } from '../models/index.js';
 
 
 const importarDatos = async () => {
@@ -29,7 +28,6 @@ const importarDatos = async () => {
             UnidadDeMedida.bulkCreate(unidades_de_medida),
             Precio.bulkCreate(precios),
             Cliente.bulkCreate(clientes),
-            Proveedor.bulkCreate(proveedores),
             Personal.bulkCreate(personals)
         ]);
         console.log('Paso 1: Roles, Categorías, Precios, Clientes, Proveedores y Personal importados.');

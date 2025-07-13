@@ -146,17 +146,18 @@ const confirmar = async (req, res) => {
 
 }
 
-// Cerrar Sesion
-export const logout = (req, res) => {
+const logout = (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/auth/login?logout=1');
+    res.redirect('/DamarisSpa?logout=1');
   });
 };
 
+// --- CORRECCIÓN: Un único bloque de exportación al final ---
 export {
     formularioLogin,
     autenticar,
     formularioRegistro,
     registrar,
-    confirmar
+    confirmar,
+    logout
 }
