@@ -4,6 +4,8 @@ import { Sequelize } from 'sequelize';
 import db from '../config/db.js';
 import GastoAdicional from '../models/GastoAdicional.js';
 import GastoAdicionalDetalle from '../models/GastoAdicionalDetalle.js';
+import GastoAdministrativo from '../models/GastoAdministrativo.js';
+import DetalleGastoAdministrativo from '../models/DetalleGastoAdministrativo.js';
 import Proveedor from '../models/Proveedor.js';
 import Usuario from '../models/Usuario.js';
 import Articulo from '../models/Articulo.js';
@@ -14,80 +16,98 @@ const { Op } = Sequelize; // Operadores de Sequelize para búsquedas complejas
 // En tu archivo controllers/gastosController.js
 
 const listarGastos = async (req, res) => {
-    // --- 1. Recolección de Parámetros ---
-    const { page = 1, busqueda = '', proveedorId = '', fecha_inicio = '', fecha_fin = '' } = req.query;
-
-    // --- 2. Configuración de Paginación ---
-    const elementosPorPagina = 10;
-    const offset = (page - 1) * elementosPorPagina;
-
-    // --- 3. Construcción de la Cláusula `where` ---
-    const whereClause = {};
-
-    if (busqueda) {
-        whereClause[Op.or] = [
-            { numero_factura: { [Op.like]: `%${busqueda}%` } },
-            { descripcion: { [Op.like]: `%${busqueda}%` } },
-            { '$Proveedor.razon_social$': { [Op.like]: `%${busqueda}%` } },
-            { '$gastos_adicionales_detalles.articulo.nombre_articulo$': { [Op.like]: `%${busqueda}%` } }
-        ];
-    }
-
-    if (proveedorId) {
-        whereClause.proveedorId = proveedorId;
-    }
-
-    // 3c. Filtro por Rango de Fechas (CORREGIDO)
-    // Apuntamos al campo correcto: 'createdAt'
-    if (fecha_inicio && fecha_fin) {
-        whereClause.createdAt = { [Op.between]: [fecha_inicio, fecha_fin] };
-    } else if (fecha_inicio) {
-        whereClause.createdAt = { [Op.gte]: fecha_inicio };
-    } else if (fecha_fin) {
-        whereClause.createdAt = { [Op.lte]: fecha_fin };
-    }
-
     try {
-        // --- 4. Consultas a la Base de Datos ---
-        const proveedores = await Proveedor.findAll({ order: [['razon_social', 'ASC']] });
+        // --- 1. Recolección de Parámetros y Paginación ---
+        const { page = 1, busqueda = '', proveedorId = '', fecha_inicio = '', fecha_fin = '' } = req.query;
+        const elementosPorPagina = 10;
+        const offset = (page - 1) * elementosPorPagina;
 
-        const { count, rows: gastos } = await GastoAdicional.findAndCountAll({
-            where: whereClause,
-            limit: elementosPorPagina,
-            offset,
-            // Ordenamiento (CORREGIDO)
-            // Ordenamos por el campo correcto: 'createdAt'
-            order: [['createdAt', 'DESC']],
-            distinct: true,
-            include: [
-                { model: Proveedor, required: true },
-                { model: Usuario, as: 'usuario', attributes: ['nombre'] },
-                {
-                    model: GastoAdicionalDetalle,
-                    as: 'gastos_adicionales_detalles',
-                    attributes: [],
-                    include: [{
-                        model: Articulo,
-                        as: 'articulo',
-                        attributes: []
-                    }]
-                }
-            ]
+        // --- 2. Construcción de Cláusulas `where` para cada tipo de gasto ---
+        const whereCompras = {}; // Para GastoAdicional (compras a proveedor)
+        const whereConsumos = {}; // Para GastoAdministrativo (consumos internos)
+
+        // Filtros de fecha (aplican a ambos)
+        if (fecha_inicio && fecha_fin) {
+            const fechaClause = { [Op.between]: [new Date(fecha_inicio), new Date(fecha_fin + 'T23:59:59')] };
+            whereCompras.fecha_gasto = fechaClause;
+            whereConsumos.createdAt = fechaClause;
+        }
+
+        // Filtro de proveedor (solo aplica a compras)
+        if (proveedorId) {
+            whereCompras.proveedorId = proveedorId;
+        }
+
+        // Filtro de búsqueda general
+        if (busqueda) {
+            const likeClause = { [Op.like]: `%${busqueda}%` };
+            whereCompras[Op.or] = [
+                { numero_factura: likeClause },
+                { '$proveedore.razon_social$': likeClause }
+            ];
+            whereConsumos.descripcion = likeClause;
+        }
+
+        // --- 3. Consultas a la Base de Datos (SIN paginación aquí) ---
+        const [compras, consumos, proveedores] = await Promise.all([
+            GastoAdicional.findAll({
+                where: whereCompras,
+                include: [
+                    { model: Proveedor, as: 'proveedore', required: true },
+                    { model: Usuario, as: 'usuario', attributes: ['nombre'] }
+                ]
+            }),
+            GastoAdministrativo.findAll({
+                where: whereConsumos,
+                include: [{ model: Usuario, as: 'usuario', attributes: ['nombre'] }]
+            }),
+            Proveedor.findAll({ order: [['razon_social', 'ASC']] })
+        ]);
+
+        // --- 4. Normalización y Combinación de Datos ---
+        const gastosNormalizados = [];
+
+        compras.forEach(g => {
+            gastosNormalizados.push({
+                id: g.id,
+                fecha: g.fecha_gasto,
+                tipo: 'Compra a Proveedor',
+                descripcion: g.proveedore.razon_social,
+                monto: g.valor_total,
+                usuarioNombre: g.usuario.nombre,
+                esAdmin: false // Es una compra
+            });
         });
 
-        // --- 5. Cálculo de Paginación ---
-        const totalPaginas = Math.ceil(count / elementosPorPagina);
+        consumos.forEach(g => {
+            gastosNormalizados.push({
+                id: g.id,
+                fecha: g.createdAt,
+                tipo: 'Consumo Interno',
+                descripcion: g.descripcion,
+                monto: null, // Los consumos no tienen un monto de compra
+                usuarioNombre: g.usuario.nombre,
+                esAdmin: true // Es un gasto administrativo
+            });
+        });
+
+        // --- 5. Ordenamiento y Paginación ---
+        gastosNormalizados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        const totalGastos = gastosNormalizados.length;
+        const totalPaginas = Math.ceil(totalGastos / elementosPorPagina);
+        const gastosPaginados = gastosNormalizados.slice(offset, offset + elementosPorPagina);
 
         // --- 6. Renderizado de la Vista ---
         res.render('gastos/leer', {
             pagina: 'Gestión de Gastos',
-            gastos,
+            gastos: gastosPaginados,
             csrfToken: req.csrfToken(),
             barra: true,
             piePagina: true,
             paginaActual: Number(page),
             totalPaginas,
-            count,
+            count: totalGastos,
             proveedores,
             query: req.query
         });
@@ -195,15 +215,18 @@ const guardarGasto = async (req, res) => {
                     // =================================================================
                     // DEBUG: Mostramos la categoría del artículo para verificar
                     // =================================================================
-                    console.log(`Verificando artículo: ${articulo.nombre_articulo}, Categoria ID: ${articulo.categoriaId}, Tipo: ${typeof articulo.categoriaId}`);
+                    //console.log(`Verificando artículo: ${articulo.nombre_articulo}, Categoria ID: ${articulo.categoriaId}, Tipo: ${typeof articulo.categoriaId}`);
 
                     // ¡CONDICIÓN CORREGIDA! Usamos parseInt para evitar problemas de tipo (ej: "1" vs 1)
-                    if (parseInt(articulo.categoriaId, 10) === 1) {
-                        console.log(`-> La categoría es 1. Actualizando stock...`);
+                    const categoriasDeInventario = [1, 4];
+
+                    // Comprueba si la categoría del artículo está en el array
+                    if (categoriasDeInventario.includes(parseInt(articulo.categoriaId, 10))) {
+                        console.log(`-> La categoría es ${articulo.categoriaId}. Actualizando stock...`);
                         const nuevoStock = parseFloat(articulo.stock_actual) + cantidadActual;
                         await articulo.update({ stock_actual: nuevoStock }, { transaction: t });
                     } else {
-                        console.log(`-> La categoría NO es 1. No se actualiza el stock.`);
+                        console.log(`-> La categoría ${articulo.categoriaId} NO es de inventario. No se actualiza el stock.`);
                     }
                 }
 
@@ -246,12 +269,12 @@ const guardarGasto = async (req, res) => {
 // --- Muestra el formulario para editar un gasto existente ---
 // ==================================================================
 const formEditarGasto = async (req, res) => {
-    
+
     if (req.usuario.role.nombre !== 'Admin') {
-      return res.status(403).send('No tienes permiso para eliminar este vale');
+        return res.status(403).send('No tienes permiso para eliminar este vale');
     }
 
-    
+
     const { id } = req.params;
 
     try {
@@ -316,7 +339,7 @@ const editarGasto = async (req, res) => {
             proveedores,
             errores: errores.array(),
             gasto,
-            formatearMoneda: formatearMoneda // No olvides pasar el helper
+            formatearMoneda: formatearMoneda
         });
     }
 
@@ -334,23 +357,24 @@ const editarGasto = async (req, res) => {
             // 3. REVERTIR EL STOCK: Buscamos los detalles viejos para saber qué revertir
             const detallesViejos = await GastoAdicionalDetalle.findAll({
                 where: { gastoAdicionalId: gastoOriginal.id },
-                include: [{ model: Articulo, as: 'articulo'  }],
+                include: [{ model: Articulo, as: 'articulo' }],
                 transaction: t
             });
 
+            // --- Define las categorías que afectan el inventario ---
+            const categoriasDeInventario = [1, 4];
+
             for (const detalle of detallesViejos) {
-                if (detalle.articulo && parseInt(detalle.articulo.categoriaId, 10) === 1) {
+                // --- CORRECCIÓN: Comprobar si la categoría está en la lista ---
+                if (detalle.articulo && categoriasDeInventario.includes(parseInt(detalle.articulo.categoriaId, 10))) {
                     const stockActual = parseFloat(detalle.articulo.stock_actual);
                     const cantidadAnterior = parseFloat(detalle.cantidad);
-                    
                     const stockDespuesDeReversion = stockActual - cantidadAnterior;
 
-                    // ¡NUEVA VALIDACIÓN! Prevenimos el error antes de que ocurra.
                     if (stockDespuesDeReversion < 0) {
-                        throw new Error(`No se puede editar. Al revertir la compra del artículo "${detalle.articulo.nombre_articulo}", el stock sería negativo. Stock actual: ${stockActual}, Cantidad a revertir: ${cantidadAnterior}.`);
+                        throw new Error(`No se puede editar. Al revertir la compra del artículo "${detalle.articulo.nombre_articulo}", el stock sería negativo.`);
                     }
 
-                    // Si la validación pasa, procedemos a revertir
                     detalle.articulo.stock_actual = stockDespuesDeReversion;
                     await detalle.articulo.save({ transaction: t });
                 }
@@ -387,7 +411,8 @@ const editarGasto = async (req, res) => {
                 const subtotal = cantidadActual * precioActual;
 
                 const articulo = await Articulo.findByPk(artId, { transaction: t });
-                if (articulo && parseInt(articulo.categoriaId, 10) === 1) {
+                // --- CORRECCIÓN: Comprobar si la categoría está en la lista ---
+                if (articulo && categoriasDeInventario.includes(parseInt(articulo.categoriaId, 10))) {
                     const nuevoStock = parseFloat(articulo.stock_actual) + cantidadActual;
                     await articulo.update({ stock_actual: nuevoStock }, { transaction: t });
                 }
@@ -408,7 +433,6 @@ const editarGasto = async (req, res) => {
 
     } catch (error) {
         console.error('Error al actualizar el gasto:', error);
-        // Si algo falla, volvemos a renderizar el formulario con el error específico
         const { id } = req.params;
         const [gasto, proveedores] = await Promise.all([
             GastoAdicional.findByPk(id, { include: [{ model: GastoAdicionalDetalle, as: 'gastos_adicionales_detalles', include: [{ model: Articulo, as: 'articulo' }] }] }),
@@ -421,7 +445,6 @@ const editarGasto = async (req, res) => {
             barra: true,
             piePagina: true,
             proveedores,
-            // Mostramos el error específico que lanzamos en la transacción
             errores: [{ msg: error.message }],
             gasto,
             formatearMoneda: formatearMoneda
@@ -429,22 +452,22 @@ const editarGasto = async (req, res) => {
     }
 };
 
-
 // --- Función para eliminar un gasto ---
 const eliminarGasto = async (req, res) => {
     const { id } = req.params;
+    // Asumo que el usuarioId se obtiene del request, si no, ajústalo.
     const { id: usuarioId } = req.usuario;
 
-    if (req.usuario.role.nombre !== 'Admin') {
-      return res.status(403).send('No tienes permiso para eliminar este vale');
+    if (req.usuario.role.nombre !== 'Admin' && req.usuario.role.nombre !== 'Supervisor') {
+        return res.status(403).send('No tienes permiso para eliminar este gasto');
     }
 
     try {
-        // Iniciamos la transacción para asegurar que todas las operaciones se completen o ninguna
+        // Iniciamos la transacción
         await db.transaction(async (t) => {
-            // 1. Buscamos el gasto a eliminar y sus detalles, incluyendo el artículo y su categoría
+            // 1. Buscamos el gasto a eliminar y sus detalles
             const gasto = await GastoAdicional.findOne({
-                where: { id, usuarioId },
+                where: { id }, // Se puede quitar el usuarioId si el admin puede borrar todo
                 include: [{
                     model: GastoAdicionalDetalle,
                     as: 'gastos_adicionales_detalles',
@@ -453,33 +476,33 @@ const eliminarGasto = async (req, res) => {
                 transaction: t
             });
 
-            // Si el gasto no existe o no pertenece al usuario, lanzamos un error para detener la transacción
             if (!gasto) {
-                throw new Error('Gasto no encontrado o no tienes permiso para eliminarlo.');
+                throw new Error('Gasto no encontrado.');
             }
+
+            // --- Define las categorías que afectan el inventario ---
+            const categoriasDeInventario = [1, 4];
 
             // 2. Revertimos el stock para cada artículo del detalle (si aplica)
             for (const detalle of gasto.gastos_adicionales_detalles) {
-                // Verificamos que el artículo exista y que su categoría sea la que afecta el stock
-                if (detalle.articulo && parseInt(detalle.articulo.categoriaId, 10) === 1) {
-                    
+                // --- CORRECCIÓN: Comprobar si la categoría está en la lista ---
+                if (detalle.articulo && categoriasDeInventario.includes(parseInt(detalle.articulo.categoriaId, 10))) {
+
                     const stockActual = parseFloat(detalle.articulo.stock_actual);
                     const cantidadComprada = parseFloat(detalle.cantidad);
-
                     const nuevoStock = stockActual - cantidadComprada;
 
-                    // ¡VALIDACIÓN CRÍTICA! Prevenimos que el stock se vuelva negativo
+                    // Validación para prevenir stock negativo
                     if (nuevoStock < 0) {
-                        throw new Error(`No se puede eliminar. El stock del artículo "${detalle.articulo.nombre_articulo}" resultaría negativo, indicando que ya fue utilizado.`);
+                        throw new Error(`No se puede eliminar. El stock del artículo "${detalle.articulo.nombre_articulo}" resultaría negativo.`);
                     }
 
-                    // Si la validación pasa, actualizamos el stock del artículo
+                    // Actualizamos el stock del artículo
                     await detalle.articulo.update({ stock_actual: nuevoStock }, { transaction: t });
                 }
             }
 
-            // 3. Eliminamos los detalles del gasto
-            // (Esto podría ser redundante si la eliminación en cascada está bien configurada, pero es más seguro hacerlo explícitamente)
+            // 3. Eliminamos los detalles del gasto (opcional pero seguro)
             await GastoAdicionalDetalle.destroy({
                 where: { gastoAdicionalId: id },
                 transaction: t
@@ -494,11 +517,8 @@ const eliminarGasto = async (req, res) => {
 
     } catch (error) {
         console.error('Error al eliminar el gasto:', error);
-        // Si el error es el que lanzamos nosotros, lo mostramos. Si no, un mensaje genérico.
-                 
-        // Idealmente, aquí se redirigiría a la página anterior mostrando el error con un flash message.
-        // Por ahora, enviamos una respuesta de error.
-        res.redirect('/gastos?errorEliminado=true');
+        // Redirigir a la página anterior mostrando el error
+        res.redirect(`/gastos?errorEliminado=${encodeURIComponent(error.message)}`);
     }
 }
 

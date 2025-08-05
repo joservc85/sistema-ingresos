@@ -35,6 +35,10 @@ block contenido
                   a(href="/actividades/pagos" class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all")
                       i(class="fas fa-chart-line")
                       span Reporte de Pagos
+                      
+                  a(href="/cierre-caja/historial" class="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md")
+                      i(class="fas fa-archive")
+                      span Historial de Cierres
 
             //- 2. Panel de Búsqueda y Filtros (Sección Separada)
             //- Este nuevo contenedor agrupa todos los filtros para un diseño más limpio.
@@ -51,7 +55,7 @@ block contenido
                           select(name="personalId" id="personalId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
                               option(value="") Todos
                               each persona in personales
-                                  option(value=persona.id selected=(query.personalId == persona.id))= persona.nombre
+                                  option(value=persona.id selected=(query.personalId == persona.id))= `${persona.nombre} ${persona.apellidos}`
                       
                       //- Filtro Cliente
                       div
@@ -161,27 +165,47 @@ block contenido
                                                         td(class="px-4 py-2 font-medium text-gray-800")= actividad.cliente ? `${actividad.cliente.nombre} ${actividad.cliente.apellidos}` : ''
                                                         td(class="px-4 py-2 text-gray-600")= actividad.procedimiento ? actividad.procedimiento.nombre : ''
                                                         td(class="px-4 py-2 text-right text-gray-700")= actividad.precio ? `$ ${parseFloat(actividad.precio.monto).toLocaleString('es-CO')}` : ''
+                                                        
                                                         td(class="px-4 py-2 text-center flex items-center justify-center space-x-4")
-
+                                                          // Botón para ver detalles de materiales (tu código existente)
                                                           if actividad.detalle_actividads && actividad.detalle_actividads.length > 0
-                                                            button(
-                                                                type="button"
-                                                                class="ver-detalles-btn text-blue-500 hover:text-blue-700 text-lg transition-colors cursor-pointer"
-                                                                title="Ver Materiales Utilizados"
-                                                                data-detalles=JSON.stringify(actividad.detalle_actividads)
-                                                            )
-                                                                i(class="fas fa-eye")
+                                                              button(
+                                                                  type="button"
+                                                                  class="ver-detalles-btn text-blue-500 hover:text-blue-700 text-lg transition-colors cursor-pointer"
+                                                                  title="Ver Materiales Utilizados"
+                                                                  data-detalles=JSON.stringify(actividad.detalle_actividads)
+                                                              )
+                                                                  i(class="fas fa-eye")
 
-                                                          if usuario && usuario.role && usuario.role.nombre === 'Admin'
-                                                            form.form-eliminar(method="POST", action=`/actividades/eliminar/${actividad.id}`)
+                                                          // --- NUEVOS BOTONES PARA FACTURAS ---
+                                                          // Se muestran solo si es una actividad facturable (no un vale)
+                                                          if actividad.procedimiento
+                                                              // Botón para generar/reimprimir en formato CARTA
+                                                              button(
+                                                                  type="button"
+                                                                  class="generar-factura-btn text-green-500 hover:text-green-700 text-lg cursor-pointer"
+                                                                  title="Imprimir Factura (Carta)"
+                                                                  data-actividad-id=actividad.id
+                                                                  data-formato="carta"
+                                                              )
+                                                                  i(class="fas fa-file-invoice")
+
+                                                              // Botón para generar/reimprimir en formato TIQUETE
+                                                              button(
+                                                                  type="button"
+                                                                  class="generar-factura-btn text-purple-500 hover:text-purple-700 text-lg cursor-pointer"
+                                                                  title="Imprimir Tiquete"
+                                                                  data-actividad-id=actividad.id
+                                                                  data-formato="ticket"
+                                                              )
+                                                                  i(class="fas fa-receipt")
+
+                                                          // Formulario para eliminar (tu código existente)
+                                                          if usuario && (usuario.role.nombre === 'Admin') && actividad.estado !== 'Anulada'
+                                                            form.form-eliminar(method="POST", action=`/actividades/anular/${actividad.id}`)
                                                                 input(type="hidden" name="_csrf" value=csrfToken)
-                                                                button(type="submit" class="text-red-500 hover:text-red-700 text-lg cursor-pointer transition-colors" title="Eliminar Actividad")
-                                                                    i(class="fas fa-trash")
-                                                          else
-                                                              form.form-eliminar(method="POST", action="#")
-                                                                  input(type="hidden" name="_csrf" value=csrfToken)
-                                                                  button(type="button" class="text-gray-500 text-lg cursor-not-allowed" title="No tienes permiso para eliminar" disabled)
-                                                                      i(class="fas fa-trash")
+                                                                button(type="submit" class="text-yellow-600 hover:text-yellow-800 text-lg cursor-pointer" title="Anular Actividad")
+                                                                    i(class="fas fa-ban")
                                 else
                                     p(class="text-center text-gray-500 py-4") No hay actividades registradas para esta ficha.
 
@@ -204,7 +228,7 @@ block contenido
                                                         td(class="px-4 py-2 text-center text-gray-600")= vale.createdAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
                                                         td(class="px-4 py-2 text-center")
                                                           // Verificamos si el usuario tiene el rol de admin
-                                                          if usuario && usuario.role && usuario.role.nombre === 'Admin'
+                                                          if usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
                                                               form.form-eliminar(method="POST", action=`/actividades/eliminar/vale/${vale.id}`,class="ml-4")
                                                                   input(type="hidden" name="_csrf" value=csrfToken)
                                                                   button(type="submit" class="text-red-500 hover:text-red-700 text-lg cursor-pointer transition-colors" title="Eliminar Vale")
@@ -247,6 +271,7 @@ block contenido
 //- Mantenemos tu bloque de scripts intacto, solo ajustando colores
 block scripts
   script(src="/js/modalDetalles.js")
+  script(src="/js/facturaHandler.js")
 
   if query.guardado
     script.

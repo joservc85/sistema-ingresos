@@ -7,27 +7,45 @@ block contenido
             span(class="font-normal") de Pagos Diarios
 
         //- Filtros
-        form(method="GET" action="/actividades/pagos" class="mb-8 bg-white p-6 rounded-lg shadow-md flex flex-wrap gap-4 items-end")
+        form(method="GET" action="/actividades/pagos" class="mb-8 bg-white p-6 rounded-lg shadow-md")
             input(type="hidden" name="_csrf" value=csrfToken)
+
+            //- Contenedor principal de filtros
+            div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4")
+                div
+                    label(for="fechaInicio" class="block text-sm font-medium text-gray-700") Desde:
+                    input(type="date" name="fechaInicio" value=fechaInicio class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+
+                div
+                    label(for="fechaFin" class="block text-sm font-medium text-gray-700") Hasta:
+                    input(type="date" name="fechaFin" value=fechaFin class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+
+                div
+                    label(for="personalId" class="block text-sm font-medium text-gray-700") Personal:
+                    select(name="personalId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+                        option(value="") -- Todos --
+                        each persona in personal
+                            option(value=persona.id selected=(personalSeleccionado == persona.id.toString()))= `${persona.nombre} ${persona.apellidos}`
+
+            //- Filtro de Estado (solo para Admin/Supervisor)
+            if usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
+                div(class="mt-4 pt-4 border-t")
+                    label(class="block text-sm font-medium text-gray-700 mb-2") Filtrar por Estado
+                    div(class="flex flex-wrap gap-2")
+                        - const estados = [{valor: 'Realizada', texto: 'Realizadas'}, {valor: 'Anulada', texto: 'Anuladas'}, {valor: 'Todas', texto: 'Todas'}]
+                        each item in estados
+                            a(
+                                href=`/actividades/pagos?estado=${item.valor}&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&personalId=${personalSeleccionado}`
+                                class=`px-4 py-2 text-sm font-semibold rounded-full transition ${estadoSeleccionado === item.valor ? 'bg-fuchsia-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
+                            )= item.texto
             
-            div
-                label(for="fechaInicio" class="block text-sm font-medium text-gray-700") Desde:
-                input(type="date" name="fechaInicio" value=fechaInicio class="px-3 py-2 border border-gray-300 rounded-md w-72")
-
-            div
-                label(for="fechaFin" class="block text-sm font-medium text-gray-700") Hasta:
-                input(type="date" name="fechaFin" value=fechaFin class="px-3 py-2 border border-gray-300 rounded-md w-72")
-
-            div
-                label(for="personalId" class="block text-sm font-medium text-gray-700") Personal:
-                select(name="personalId" class="px-3 py-2 border border-gray-300 rounded-md w-72")
-                    option(value="") -- Todos --
-                    each persona in personal
-                        option(value=persona.id selected=(personalSeleccionado == persona.id.toString()))= persona.nombre
-
-            button(type="submit" class="bg-fuchsia-600 text-white px-4 py-2 rounded-md font-bold hover:bg-fuchsia-700 transition") Buscar
-            a(href=`/actividades/pagos/exportar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&personalId=${personalSeleccionado}` 
-                class="ml-auto bg-green-600 text-white px-4 py-2 rounded-md font-bold hover:bg-green-700 transition") 
+            //- Botones de Acción
+            div(class="mt-6 pt-4 border-t flex flex-wrap gap-4 items-center")
+                button(type="submit" class="bg-fuchsia-600 text-white px-4 py-2 rounded-md font-bold hover:bg-fuchsia-700 transition") Buscar
+                a(href="/actividades/pagos" class="flex items-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+                    i(class="fas fa-undo")
+                    span Limpiar
+                a(href=`/actividades/pagos/exportar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&personalId=${personalSeleccionado}` class="ml-0 md:ml-auto bg-green-600 text-white px-4 py-2 rounded-md font-bold hover:bg-green-700 transition") 
                     i(class="fas fa-file-excel mr-2")
                     | Exportar a Excel
 

@@ -1,0 +1,66 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-3xl md:text-4xl my-10 font-extrabold text-center") Historial de 
+            span(class="font-normal") Auditoría
+        h2(class="text-center text-2xl font-bold text-gray-700")= pagina
+
+        //- Panel de Filtros
+        form(method="GET" action="/auditoria" class="mb-8 bg-white p-6 rounded-lg shadow-md")
+            div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end")
+                div
+                    label(for="fecha_inicio" class="block text-sm font-medium text-gray-700") Desde
+                    input(type="date" name="fecha_inicio" value=query.fecha_inicio || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+                div
+                    label(for="fecha_fin" class="block text-sm font-medium text-gray-700") Hasta
+                    input(type="date" name="fecha_fin" value=query.fecha_fin || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+                div
+                    label(for="usuarioId" class="block text-sm font-medium text-gray-700") Usuario
+                    select(name="usuarioId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+                        option(value="") -- Todos --
+                        each usuario in usuarios
+                            option(value=usuario.id selected=(query.usuarioId == usuario.id))= usuario.nombre
+                div
+                    label(for="accion" class="block text-sm font-medium text-gray-700") Acción
+                    select(name="accion" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md")
+                        option(value="") -- Todas --
+                        - const acciones = ['CREAR', 'MODIFICAR', 'ELIMINAR', 'ANULAR']
+                        each act in acciones
+                            option(value=act selected=(query.accion == act))= act
+            div(class="mt-4 pt-4 border-t flex gap-4")
+                button(type="submit" class="bg-fuchsia-600 text-white px-4 py-2 rounded-md font-bold hover:bg-fuchsia-700") Filtrar
+                a(href="/auditoria" class="bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg") Limpiar
+
+        if !auditorias || auditorias.length === 0
+            p(class="text-center text-gray-500 mt-10") No hay registros de auditoría que coincidan con los filtros.
+        else
+            div(class="bg-white shadow rounded-lg overflow-x-auto")
+                table(class="min-w-full leading-normal")
+                    thead
+                        tr
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase") Fecha y Hora
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase") Usuario
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase") Acción
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase") Descripción
+                    tbody
+                        each registro in auditorias
+                            tr
+                                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
+                                    p(class="text-gray-900")= new Date(registro.createdAt).toLocaleString('es-VE')
+                                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
+                                    p(class="text-gray-900 font-semibold")= registro.usuario.nombre
+                                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center")
+                                    if registro.accion === 'ANULAR' || registro.accion === 'ELIMINAR'
+                                        span(class="px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full")= registro.accion
+                                    else if registro.accion === 'MODIFICAR'
+                                        span(class="px-2 py-1 font-semibold leading-tight text-yellow-700 bg-yellow-100 rounded-full")= registro.accion
+                                    else
+                                        span(class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full")= registro.accion
+                                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
+                                    p(class="text-gray-900")= registro.descripcion
+            
+            //- Paginación
+            if totalPaginas > 1
+                div(class="mt-8")
+                    include ../layout/paginacion

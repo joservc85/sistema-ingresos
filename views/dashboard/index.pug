@@ -1,0 +1,52 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-3xl md:text-4xl my-10 font-extrabold text-center") Panel de 
+            span(class="font-normal") Control
+        h2(class="text-center text-2xl font-bold text-fuchsia-600") Resumen del Día
+
+        //- Contenedor de las tarjetas de métricas
+        div(class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto")
+            //- Tarjeta 1: Ventas Totales
+            div(class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-green-500 flex items-center gap-4")
+                div(class="bg-green-100 p-3 rounded-full")
+                    i(class="fas fa-dollar-sign text-2xl text-green-600")
+                div
+                    p(class="text-sm text-gray-500") Ventas Totales del Día
+                    p(class="text-3xl font-extrabold text-gray-800") $#{totalVentasHoy.toLocaleString('es-CO')}
+
+            //- Tarjeta 2: Clientes Atendidos
+            div(class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-blue-500 flex items-center gap-4")
+                div(class="bg-blue-100 p-3 rounded-full")
+                    i(class="fas fa-users text-2xl text-blue-600")
+                div
+                    p(class="text-sm text-gray-500") Clientes Atendidos Hoy
+                    p(class="text-3xl font-extrabold text-gray-800")= clientesAtendidosHoy
+
+            //- Tarjeta 3: Vales Emitidos
+            div(class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-red-500 flex items-center gap-4")
+                div(class="bg-red-100 p-3 rounded-full")
+                    i(class="fas fa-ticket-alt text-2xl text-red-600")
+                div
+                    p(class="text-sm text-gray-500") Vales Emitidos (Egresos)
+                    p(class="text-3xl font-extrabold text-gray-800") -$#{totalValesHoy.toLocaleString('es-CO')}
+
+        //- Sección de Accesos Directos
+        div(class="mt-12 max-w-5xl mx-auto")
+            h3(class="text-xl font-bold text-gray-700 text-center mb-6") Accesos Rápidos
+            div(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4")
+                a(href="/actividades/crear" class="bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-4 px-6 rounded-lg shadow-md text-center transition")
+                    i(class="fas fa-plus-circle mr-2")
+                    | Registrar Actividad
+                a(href="/cierre-caja" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-md text-center transition")
+                    i(class="fas fa-cash-register mr-2")
+                    | Cierre de Caja
+                
+                if usuario && usuario.role && usuario.role.nombre === 'Admin'
+                    a(href="/inventario/ropa" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg shadow-md text-center transition")
+                        i(class="fas fa-tshirt mr-2")
+                        | Inventario Ropa
+                a(href="/mis-actividades" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-4 px-6 rounded-lg shadow-md text-center transition")
+                    i(class="fas fa-list-alt mr-2")
+                    | Ver Actividades

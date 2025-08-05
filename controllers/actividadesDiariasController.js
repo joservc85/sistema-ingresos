@@ -7,10 +7,15 @@ const vistaPagosDiarios = async (req, res) => {
         const elementosPorPagina = 12;
         const paginaActual = Number(req.query.page) || 1;
         const offset = (paginaActual - 1) * elementosPorPagina;
-        const { fechaInicio, fechaFin, personalId } = req.query;
+        const { fechaInicio, fechaFin, personalId, estado = 'Realizada' } = req.query;
 
         // --- 1. Definir los filtros para la consulta ---
         const whereClause = {};
+
+        if (estado === 'Realizada' || estado === 'Anulada') {
+            whereClause.estado = estado;
+        }
+        
         if (fechaInicio && fechaFin) {
             whereClause.createdAt = {
                 [Op.between]: [new Date(fechaInicio), new Date(fechaFin + 'T23:59:59')]

@@ -14,32 +14,29 @@ block contenido
                 a(href="/mis-actividades" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
                     i(class="fas fa-arrow-left")
                     span(class="font-bold") Regresar
-        
+            
             div(class="bg-white p-8 rounded-lg shadow-lg")
                 //- Muestra de errores de validación
                 if errores
                     div(class="mb-6")
                         each error in errores
                             div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
-                                svg(class="w-6 h-6 text-red-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor")
-                                    path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
                                 p(class="font-bold")= error.msg
                 
                 form#formActividad(method="POST" action="/actividades/crear")
                     input(type="hidden" name="_csrf" value= csrfToken)
-                    //- Inputs ocultos se mantienen para tu lógica de JS
                     input(type="hidden" name="procedimiento" id="procedimientoHidden" value= datos.procedimiento || '')
                     input(type="hidden" name="precio" id="precioHidden" value= datos.precio || '')
 
                     //- Sección de Información General
                     div(class="mb-8")
-                        h3(class="text-lg leading-6 font-bold text-gray-900") Información General de la Actividad
+                        h3(class="text-lg leading-6 font-bold text-gray-900") Información General
                         p(class="text-sm text-gray-500 mt-1") Selecciona el personal, cliente y el procedimiento realizado.
                     
                     div(class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8")
                         //- Personal
                         div(class="flex flex-col gap-1")
-                            label(for="personal" class="block text-sm font-medium text-gray-700") Personal que realizó el procedimiento
+                            label(for="personal" class="block text-sm font-medium text-gray-700") Personal
                             select#personal(name="personal" class="w-full h-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
                                 option(value="") -- Seleccione --
                                 each personal in personals
@@ -47,59 +44,74 @@ block contenido
                         
                         //- Cliente
                         div(class="flex flex-col gap-1")
-                            label(for="cliente" class="block text-sm font-medium text-gray-700") Cliente Atendido
+                            label(for="cliente" class="block text-sm font-medium text-gray-700") Cliente
                             select#cliente(name="cliente" class="w-full h-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
                                 option(value="") -- Seleccione --
                                 each cliente in clientes
-                                    option(value=cliente.id selected= datos.cliente ? datos.cliente == cliente.id : false)= cliente.nombre + ' ' + cliente.apellidos
+                                    if cliente.tipo === 'Spa' || cliente.tipo === 'Ambos'
+                                        option(value=cliente.id selected= datos.cliente ? datos.cliente == cliente.id : false)= cliente.nombre + ' ' + cliente.apellidos
 
-                        //- Procedimiento y Precio (ocupa dos columnas)
+                        //- Procedimiento y Precio
                         div(class="md:col-span-2 flex flex-col gap-1")
                             label(for="procedimientoPrecio" class="block text-sm font-medium text-gray-700") Procedimiento y Precio
                             select#procedimientoPrecio(name="procedimientoPrecio" class="w-full h-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
                                 option(value="") -- Seleccione --
                                 each procedimiento in procedimientos
-                                    if procedimiento.precio && procedimiento.precio.monto !== undefined && procedimiento.precio.monto !== null
+                                    if procedimiento.precio
                                         - const combinedValue = `${procedimiento.id}-${procedimiento.precio.id}`
-                                        - const isSelected = datos.procedimiento && datos.precio && datos.procedimiento == procedimiento.id && datos.precio == procedimiento.precio.id ? true : false
-                                        option(value=combinedValue selected=isSelected)= `${procedimiento.nombre} - $ ${parseFloat(procedimiento.precio.monto).toLocaleString('es-CO')} COP`
+                                        - const isSelected = datos.procedimiento == procedimiento.id && datos.precio == procedimiento.precio.id
+                                        option(value=combinedValue selected=isSelected)= `${procedimiento.nombre} - $ ${parseFloat(procedimiento.precio.monto).toLocaleString('es-CO')}`
                                     else
                                         option(value=procedimiento.id disabled)= `${procedimiento.nombre} (Precio no disponible)`
 
-                    //- Sección de Material Utilizado (Insumos de Manicure)
+                    //- Sección de Información de Pago
+                    div(class="mt-8 pt-6 border-t border-gray-200")
+                        h3(class="text-lg leading-6 font-bold text-gray-900") Información de Pago
+                        div(class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 mt-4")
+                            div(class="flex flex-col gap-1")
+                                label(for="formaDePagoId" class="block text-sm font-medium text-gray-700") Forma de Pago
+                                select#formaDePagoId(name="formaDePagoId" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500")
+                                    option(value="") -- Seleccione --
+                                    each forma in formasDePago
+                                        option(value=forma.id data-nombre=forma.nombre selected= datos.formaDePagoId == forma.id)= forma.nombre
+                            div(class="flex flex-col gap-1")
+                                label(for="bancoId" class="block text-sm font-medium text-gray-700") Banco (si aplica)
+                                select#bancoId(name="bancoId" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 disabled:bg-gray-100" disabled)
+                                    option(value="") -- Seleccione --
+                                    each banco in bancos
+                                        option(value=banco.id selected= datos.bancoId == banco.id)= banco.nombre
+                            div(id="campo-referencia" class="hidden md:col-span-2")
+                                label(for="referencia_pago" class="block text-sm font-medium text-gray-700") N° de Referencia / Comprobante
+                                input#referencia_pago(type="text" name="referencia_pago" value= datos.referencia_pago || '' class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500")
+
+                    //- Sección de Material Utilizado
                     div#seccionMateriales(class="mt-8 pt-6 border-t border-gray-200")
                         h3(class="text-lg leading-6 font-bold text-gray-900") Material Utilizado
                         p(class="text-sm text-gray-500 mb-4") Registra los materiales utilizados en esta actividad.
-
                         div#materialesContainer(class="space-y-4")
-                            //- CAMBIO: Volvemos a 3 columnas y quitamos 'relative'
-                            div.material-item(class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-50 p-4 rounded-md shadow-sm")
+                            //- CORRECCIÓN: Se ajusta el grid a 12 columnas para más control
+                            div.material-item(class="grid grid-cols-12 gap-4 items-end bg-gray-50 p-4 rounded-md shadow-sm")
                                 
-                                // Columna 1: Artículo
-                                div
+                                //- CORRECCIÓN: El div del Artículo ahora ocupa 6 de 12 columnas
+                                div(class="col-span-12 md:col-span-6")
                                     label(for="articuloId[]" class="block text-sm font-medium text-gray-700") Artículo
-                                    select(name="articuloId[]" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-fuchsia-500")
-                                        option(value="") -- Seleccione un insumo --
+                                    select(name="articuloId[]" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-fuchsia-500 articulo-select")
+                                        option(value="") -- Seleccione --
                                         each articulo in articulos
-                                            if articulo.categoriaId === 1
-                                                option(value=articulo.id)= articulo.nombre_articulo
-
-                                // Columna 2: Cantidad
-                                div
+                                            option(value=articulo.id data-stock=articulo.stock_actual)= articulo.nombre_articulo
+                                
+                                //- CORRECCIÓN: El div de Cantidad ahora ocupa 4 de 12 columnas
+                                div(class="col-span-7 md:col-span-4")
                                     label(for="cantidad[]" class="block text-sm font-medium text-gray-700") Cantidad
-                                    // NOTA: El input será más pequeño porque la columna es más estrecha
                                     input(type="number" min="0.1" step="0.1" name="cantidad[]" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-fuchsia-500")
-
-                                // Columna 3: Botón Eliminar
-                                // CAMBIO: Eliminamos las clases de posicionamiento absoluto
-                                div
-                                    button(type="button" class="eliminar-material w-full md:w-auto bg-red-100 text-red-600 hover:bg-red-200 font-semibold py-2 px-4 rounded-md transition")
+                                
+                                //- CORRECCIÓN: El div del Botón ahora ocupa 2 de 12 columnas
+                                div(class="col-span-5 md:col-span-2")
+                                    button(type="button" class="eliminar-material w-full bg-red-100 text-red-600 hover:bg-red-200 font-semibold py-2 px-4 rounded-md transition cursor-pointer")
                                         i(class="fas fa-trash-alt")
 
-
-                        // Botón para agregar nueva fila
                         div(class="mt-4 text-right")
-                            button#btnAgregarMaterial(type="button" class="bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-6 rounded-md transition-all")
+                            button#btnAgregarMaterial(type="button" class="bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-6 rounded-md transition-all cursor-pointer")
                                 i(class="fas fa-plus mr-2")
                                 | Agregar Material
                     
@@ -110,35 +122,14 @@ block contenido
                             div(class="flex items-center")
                                 input#soloVales(type="checkbox" name="soloVales" class="h-5 w-5 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded" checked=datos.soloVales === 'on')
                                 label(for="soloVales" class="ml-3 block text-sm font-medium text-gray-700") Marcar si solo se registrará un vale (sin actividad).
-                        
-                        div(class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 mt-4")
-                            //- Monto del Vale
-                            div(class="flex flex-col gap-1")
-                                label(for="vales_display" class="block text-sm font-medium text-gray-700") Monto del Vale
-
-                                //- Usamos un bloque de código para formatear el valor antes de pasarlo al input
-                                - let valorFormateado = datos.vales ? new Intl.NumberFormat('es-CO').format(datos.vales) : ''
-
-                                input#vales_display(
-                                    type="text", 
-                                    placeholder="0.00",
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 disabled:bg-gray-100",
-                                    disabled= !datos.soloVales,
-                                    oninput="formatNumberInput(event)",
-                                    data-target-hidden-id="vales",
-                                    value=valorFormateado 
-                                )
-
-                                input#vales(
-                                    type="hidden", 
-                                    name="vales",
-                                    value=datos.vales || ''
-                                )
-                            
-                            //- Descripción del Vale
-                            div(class="flex flex-col gap-1")
-                                label(for="descripcion" class="block text-sm font-medium text-gray-700") Descripción del Vale
-                                input#descripcion(type="text" name="descripcion" placeholder="Ej: Adelanto de nómina" value=datos.descripcion || '' disabled= !datos.soloVales class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 disabled:bg-gray-100")
+                            div(class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8 mt-4")
+                                div(class="flex flex-col gap-1")
+                                    label(for="vales_display" class="block text-sm font-medium text-gray-700") Monto del Vale
+                                    input#vales_display(type="text", placeholder="0.00", class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 disabled:bg-gray-100", disabled= !datos.soloVales, oninput="formatNumberInput(event)", data-target-hidden-id="vales", value=datos.vales ? new Intl.NumberFormat('es-CO').format(datos.vales) : '')
+                                    input#vales(type="hidden", name="vales", value=datos.vales || '')
+                                div(class="flex flex-col gap-1")
+                                    label(for="descripcion" class="block text-sm font-medium text-gray-700") Descripción del Vale
+                                    input#descripcion(type="text" name="descripcion" placeholder="Ej: Adelanto de nómina" value=datos.descripcion || '' disabled= !datos.soloVales class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 disabled:bg-gray-100")
 
                     //- Botones de acción
                     div(class="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4")
@@ -146,6 +137,5 @@ block contenido
                         input(type="submit", value="Agregar Actividad", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer transition-all")
 
 block scripts
-    //- Tu script personalizado es lo más importante, se mantiene al final
     script(src="/js/crearActividad.js")
-    script(src="/js/app.js") 
+    script(src="/js/app.js")

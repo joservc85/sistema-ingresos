@@ -7,19 +7,22 @@ include ../mixins/formularios
 block contenido
     div(class="py-10")
         h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
-            | Sistema 
-            span(class="font-normal") Ingresos
+            | Editar 
+            span(class="font-normal") Cliente
         h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
 
         div(class="mt-8 mx-auto max-w-4xl px-4")
+            div(class="flex justify-start mb-6")
+                a(href="/cliente/leer" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar
+
             div(class="bg-white p-8 rounded-lg shadow-lg")
                 //- Muestra de errores de validación
                 if errores
                     div(class="mb-6")
                         each error in errores
                             div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
-                                svg(class="w-6 h-6 text-red-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor")
-                                    path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
                                 p(class="font-bold")= error.msg
                 
                 form(action=`/cliente/editar/${cliente.id}` method="POST" novalidate)
@@ -27,33 +30,51 @@ block contenido
 
                     div(class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8")
                         
+                        //- Cédula
+                        div(class="flex flex-col gap-1")
+                            label(for="cedula" class="block text-sm font-medium text-gray-700") Cédula (Opcional)
+                            input#cedula(type="text", name="cedula", placeholder="Número de documento", value= cliente.cedula || '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+
+                        
                         //- Nombre
                         div(class="flex flex-col gap-1")
                             label(for="nombre" class="block text-sm font-medium text-gray-700") Nombre
-                            input#nombre(type="text", name="nombre", placeholder="Nombre del cliente", value= cliente ? cliente.nombre : '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                            input#nombre(type="text", name="nombre", placeholder="Nombre del cliente", value= cliente.nombre, class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
                         
                         //- Apellidos
                         div(class="flex flex-col gap-1")
                             label(for="apellidos" class="block text-sm font-medium text-gray-700") Apellidos
-                            input#apellidos(type="text", name="apellidos", placeholder="Apellidos del cliente", value= cliente ? cliente.apellidos : '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                            input#apellidos(type="text", name="apellidos", placeholder="Apellidos del cliente", value= cliente.apellidos, class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
 
                         //- Correo Electrónico
                         div(class="flex flex-col gap-1")
-                            label(for="email" class="block text-sm font-medium text-gray-700") Correo Electrónico
-                            input#email(type="email", name="email", placeholder="ejemplo@correo.com", value= cliente ? cliente.email : '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                            label(for="email" class="block text-sm font-medium text-gray-700") Correo Electrónico (Opcional)
+                            input#email(type="email", name="email", placeholder="ejemplo@correo.com", value= cliente.email || '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
                         
                         //- Teléfono
                         div(class="flex flex-col gap-1")
                             label(for="telefono" class="block text-sm font-medium text-gray-700") Teléfono
                             div(class="flex items-center")
                                 select#prefijo_telefono(name="prefijo_telefono" class="h-full px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
-                                    //- El mixin se encarga de preseleccionar el valor
-                                    +prefijosCelular(cliente ? cliente.prefijo_telefono : '')
-                                input#telefono(type="text", name="telefono", placeholder="Número de celular", value= cliente ? cliente.telefono : '', class="w-full px-3 py-2 border border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                                    +prefijosCelular(cliente.prefijo_telefono)
+                                input#telefono(type="text", name="telefono", placeholder="Número de celular", value= cliente.telefono, class="w-full px-3 py-2 border border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+
+                        //- --- ¡NUEVO CAMPO! Tipo de Cliente ---
+                        div(class="flex flex-col gap-1")
+                            label(for="tipo" class="block text-sm font-medium text-gray-700") Tipo de Cliente
+                            select#tipo(name="tipo" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+                                option(value="Spa" selected=cliente.tipo === 'Spa') Spa
+                                option(value="Ropa" selected=cliente.tipo === 'Ropa') Ropa
+                                option(value="Ambos" selected=cliente.tipo === 'Ambos') Ambos
                         
+                        //- --- ¡NUEVO CAMPO! Instagram ---
+                        div(class="flex flex-col gap-1")
+                            label(for="instagram" class="block text-sm font-medium text-gray-700") Instagram (Opcional)
+                            input#instagram(type="text", name="instagram", placeholder="@usuario", value= cliente.instagram || '', class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500")
+
                         //- Campo Activo (Checkbox)
                         div(class="md:col-span-2 flex items-center gap-3 pt-4 border-t border-gray-200")
-                            input#activo(type="checkbox", name="activo", class="h-5 w-5 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded" checked=cliente && cliente.activo)
+                            input#activo(type="checkbox", name="activo", class="h-5 w-5 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded" checked=cliente.activo)
                             label(for="activo" class="text-sm font-medium text-gray-700") Cliente Activo
 
                     //- Botones de acción

@@ -15,7 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAgregarMaterial = document.getElementById('btnAgregarMaterial');
     const materialesContainer = document.getElementById('materialesContainer');
     const seccionMateriales = document.getElementById('seccionMateriales');
-
+    // --- ¡NUEVAS REFERENCIAS AÑADIDAS! ---
+    const formaDePagoSelect = document.getElementById('formaDePagoId');
+    const bancoSelect = document.getElementById('bancoId');
+    const campoReferencia = document.getElementById('campo-referencia');
 
     // =========================================================================
     // DECLARACIÓN DE FUNCIONES
@@ -82,6 +85,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         soloValesCheckbox.addEventListener('change', toggleValeFields);
         toggleValeFields(); // Llamada inicial para establecer el estado correcto al cargar
+    }
+
+    // --- ¡NUEVA LÓGICA AÑADIDA PARA FORMA DE PAGO! ---
+    if (formaDePagoSelect && bancoSelect && campoReferencia) {
+        formaDePagoSelect.addEventListener('change', () => {
+            const selectedOption = formaDePagoSelect.options[formaDePagoSelect.selectedIndex];
+            const nombreFormaDePago = selectedOption.dataset.nombre;
+
+            // Lógica para habilitar/deshabilitar el banco
+            if (nombreFormaDePago === 'Transferencia') {
+                bancoSelect.disabled = false;
+                bancoSelect.classList.remove('disabled:bg-gray-100');
+            } else {
+                bancoSelect.disabled = true;
+                bancoSelect.value = '';
+                bancoSelect.classList.add('disabled:bg-gray-100');
+            }
+
+            // --- ¡NUEVA LÓGICA AÑADIDA! ---
+            // Lógica para mostrar/ocultar el campo de referencia
+            if (nombreFormaDePago === 'Transferencia' || nombreFormaDePago === 'Datafono') {
+                campoReferencia.classList.remove('hidden');
+                campoReferencia.classList.add('flex', 'flex-col', 'gap-1');
+            } else {
+                campoReferencia.classList.add('hidden');
+                campoReferencia.classList.remove('flex', 'flex-col', 'gap-1');
+            }
+        });
     }
 
     // --- Lógica para agregar/eliminar Materiales Utilizados ---

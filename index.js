@@ -10,9 +10,11 @@ import dotenv from 'dotenv'
 import { formularioLogin } from './controllers/usuarioControllers.js';
 
 // Importaciones de Rutas
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import usuarioRoutes from './routes/usuarioRoutes.js'
 import adminRoutes from './routes/adminRoutes.js';
 import actividadesRoutes from './routes/actividadesRoutes.js';
+import facturaRoutes from './routes/facturaRoutes.js'; 
 import actividadesDiariasRoutes from './routes/actividadesDiariasRoutes.js';
 import procedimientoRoutes from './routes/procedimientoRoutes.js';
 import personalRoutes from './routes/personalRoutes.js'
@@ -22,10 +24,16 @@ import articulosRoutes from './routes/articulosRoutes.js';
 import gastosRoutes from './routes/gastosRoutes.js';
 import inventarioRoutes from './routes/inventarioRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
-
+import gastosAdministrativosRoutes from './routes/gastosAdministrativosRoutes.js';
 // Importación de la Base de Datos
 import db from './config/db.js'
-
+// Importacion del modulo de inventario de ropa
+import ropaRoutes from './routes/ropaRoutes.js';
+import ventaRopaRoutes from './routes/ventaRopaRoutes.js';
+// Cierre de Caja
+import cierreCajaRoutes from './routes/cierreCajaRoutes.js';
+// Auditoria
+import auditoriaRoutes from './routes/auditoriaRoutes.js';
 // --- 1. CONFIGURACIÓN INICIAL ---
 const app = express()
 dotenv.config({ path: '.env' })
@@ -68,18 +76,29 @@ app.use(csrf({cookie: true}))
 app.get('/DamarisSpa', formularioLogin);
 
 // Rutas existentes
+// Auditoria
+app.use('/auditoria', auditoriaRoutes);
+// Procesos Principales
+app.use('/', actividadesRoutes)
+app.use('/actividades', actividadesDiariasRoutes);
+app.use('/api', apiRoutes);
+app.use('/dashboard', dashboardRoutes);
 app.use('/auth', usuarioRoutes)
 app.use('/admin', adminRoutes)
+app.use('/facturas', facturaRoutes);
 app.use('/personal', personalRoutes)
 app.use('/cliente', clienteRoutes)
+// Inventario
 app.use('/proveedor', proveedorRoutes)
 app.use('/procedimientos', procedimientoRoutes);
 app.use('/articulos', articulosRoutes);
 app.use('/gastos', gastosRoutes);
+app.use('/gastos-administrativos', gastosAdministrativosRoutes);
 app.use('/inventario', inventarioRoutes);
-app.use('/', actividadesRoutes)
-app.use('/actividades', actividadesDiariasRoutes);
-app.use('/api', apiRoutes); 
+// Iventario de Ropa 
+app.use('/inventario/ropa', ropaRoutes);
+app.use('/ventas/ropa', ventaRopaRoutes);
+app.use('/cierre-caja', cierreCajaRoutes);
 
 // --- 6. MANEJADOR DE ERRORES 404 ---
 app.use((req, res) => {
@@ -89,7 +108,7 @@ app.use((req, res) => {
 })
 
 // --- 7. PUERTO Y ARRANQUE DEL SERVIDOR ---
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 app.listen(port, () =>{
     console.log(`El servidor Inicio en el puerto ${port}`)
 })

@@ -1,0 +1,86 @@
+extends ../../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
+            | Sistema 
+            span(class="font-normal") Gastos
+        h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
+
+        div(class="mx-auto max-w-4xl")
+            //- Botón de regresar
+            div(class="flex justify-start mb-4")
+                a(href="/gastos" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar
+            
+            div(class="bg-white shadow-lg rounded-lg mx-auto p-6 md:p-8")
+
+                //- Muestra de errores
+                if errores
+                    div(class="mb-6")
+                        each error in errores
+                            div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
+                                p(class="font-bold")= error.msg
+
+                //- Formulario que apunta a la ruta de edición
+                form(method="POST")
+                    input(type="hidden" name="_csrf" value=csrfToken)
+
+                    //- SECCIÓN DE DESCRIPCIÓN
+                    fieldset(class="border border-gray-300 p-4 rounded-md")
+                        legend(class="px-2 text-lg font-semibold text-gray-700") Datos del Gasto
+                        div
+                            label(for="descripcion" class="block text-sm font-medium text-gray-700") Descripción General
+                            textarea#descripcion(name="descripcion" rows="3" placeholder="Ej: Consumo de artículos de limpieza para el mes." class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm")= gasto.descripcion
+
+                    //- SECCIÓN DE ARTÍCULOS A DESCONTAR
+                    fieldset(class="mt-6 border border-gray-300 p-4 rounded-md")
+                        legend(class="px-2 text-lg font-semibold text-gray-700") Artículos Consumidos
+                        
+                        div(id="detalle-gastos-container" class="space-y-4 mt-2")
+                            //- Las filas de artículos se cargarán aquí
+                            //- --- CORRECCIÓN: Se usa el nuevo alias 'gasto.detalles' ---
+                            each detalle in gasto.detalles
+                                div(class="detalle-item grid grid-cols-12 gap-x-3 items-end p-2 border rounded-md bg-gray-50")
+                                    div(class="col-span-12 md:col-span-8")
+                                        label(class="text-xs text-gray-600") Artículo
+                                        select(name="articuloId[]" class="w-full text-sm border-gray-300 rounded-md articulo-select")
+                                            option(value="") -- Seleccione un artículo --
+                                            each articulo in articulos
+                                                option(value=articulo.id selected=(detalle.articuloId == articulo.id) data-stock=articulo.stock_actual) #{articulo.nombre_articulo} (Disponible: #{articulo.stock_actual})
+                                    div(class="col-span-8 md:col-span-3")
+                                        label(class="text-xs text-gray-600") Cantidad Usada
+                                        input(type="number" name="cantidad[]" value=detalle.cantidad min="1" class="w-full text-sm border-gray-300 rounded-md px-2")
+                                    div(class="col-span-4 md:col-span-1 flex justify-end items-center")
+                                        button(type="button" class="eliminar-detalle text-red-500 hover:text-red-700 p-2 cursor-pointer")
+                                            i(class="fas fa-trash-alt")
+                        
+                        button(type="button" id="agregar-detalle" class="mt-4 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors")
+                            i(class="fas fa-plus")
+                            span Añadir Artículo
+
+                    //- SECCIÓN DE GUARDADO
+                    div(class="mt-8 pt-5 border-t border-gray-200")
+                        div(class="flex justify-end")
+                            button(type="submit" class="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors text-lg cursor-pointer") Guardar Cambios
+
+    //- PLANTILLA PARA UNA FILA DE DETALLE (Oculta, para ser clonada con JS)
+    div(id="plantilla-detalle" class="hidden")
+        div(class="detalle-item grid grid-cols-12 gap-x-3 items-end p-2 border rounded-md bg-gray-50")
+            div(class="col-span-12 md:col-span-8")
+                label(class="text-xs text-gray-600") Artículo
+                select(name="articuloId[]" class="w-full text-sm border-gray-300 rounded-md articulo-select")
+                    option(value="") -- Seleccione un artículo --
+                    each articulo in articulos
+                        option(value=articulo.id data-stock=articulo.stock_actual) #{articulo.nombre_articulo} (Disponible: #{articulo.stock_actual})
+            div(class="col-span-8 md:col-span-3")
+                label(class="text-xs text-gray-600") Cantidad a Usar
+                input(type="number" name="cantidad[]" value="1" min="1" class="w-full text-sm border-gray-300 rounded-md px-2")
+            div(class="col-span-4 md:col-span-1 flex justify-end items-center")
+                button(type="button" class="eliminar-detalle text-red-500 hover:text-red-700 p-2 cursor-pointer")
+                    i(class="fas fa-trash-alt")
+
+block scripts
+    //- Reutilizamos el mismo script de la vista de creación si la lógica es similar
+    script(src="/js/gastoAdministrativo.js")

@@ -1,6 +1,6 @@
 import express from "express";
 import { body } from 'express-validator'
-import { admin, crear, guardar, eliminarActividad, eliminarVale } from '../controllers/actividadesControllers.js'
+import { admin, crear, guardar, anularActividad, eliminarVale } from '../controllers/actividadesControllers.js'
 import { protegerRuta } from "../middleware/protegerRuta.js"
 
 const router = express.Router()
@@ -50,10 +50,17 @@ router.post('/actividades/crear', protegerRuta,
         }
         return true;
     }),
+    body('formaDePagoId').if(body('soloVales').not().exists())
+        .notEmpty().withMessage('Debes seleccionar una Forma de Pago para la actividad.'),
+    
     guardar
 )
 
-router.post('/actividades/eliminar/:id',protegerRuta, eliminarActividad);
+// --- RUTA ACTUALIZADA: DE ELIMINAR A ANULAR ---
+router.post('/actividades/anular/:id',
+    protegerRuta,
+    anularActividad
+);
 router.post('/actividades/eliminar/vale/:id', protegerRuta, eliminarVale);
 
 export default router;

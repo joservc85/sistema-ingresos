@@ -60,7 +60,7 @@ const autenticar = async (req, res) => {
     return res.cookie('_token', token, {
         httpOnly: true,
        // secure: true
-    }).redirect('/mis-actividades')
+    }).redirect('/dashboard')
 }
 
 const formularioRegistro = (req, res) => {

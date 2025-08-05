@@ -1,0 +1,122 @@
+extends ../../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-3xl md:text-4xl my-10 font-extrabold text-center") Historial de 
+            span(class="font-normal") Ventas de Ropa
+        
+        div(class="flex flex-col md:flex-row md:items-center gap-4 mb-8")
+            a(href="/inventario/ropa" class="w-full md:w-auto text-center inline-block bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg shadow-md")
+                i(class="fas fa-arrow-left mr-2")
+                | Regresar al Inventario
+            a(href="/ventas/ropa/registrar" class="w-full md:w-auto text-center inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md")
+                i(class="fas fa-cash-register mr-2")
+                | Registrar Nueva Venta
+
+        //- --- ¡NUEVO! Formulario de Búsqueda ---
+        form(method="GET" action="/ventas/ropa/historial" class="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm mb-8")
+            div(class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end")
+                div(class="md:col-span-3")
+                    label(for="busqueda" class="block text-sm font-medium text-gray-700 mb-1") Buscar por Cliente
+                    input(type="text" name="busqueda" id="busqueda" placeholder="Nombre o Apellido del cliente..." value=busqueda || '' class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                
+                div
+                    label(for="fecha_inicio" class="block text-sm font-medium text-gray-700 mb-1") Desde
+                    input(type="date" name="fecha_inicio" id="fecha_inicio" value=fecha_inicio || '' class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
+
+                div
+                    label(for="fecha_fin" class="block text-sm font-medium text-gray-700 mb-1") Hasta
+                    input(type="date" name="fecha_fin" id="fecha_fin" value=fecha_fin || '' class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
+
+                div(class="flex items-center gap-2 w-full")
+                    button(type="submit" class="w-full md:w-auto flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg transition")
+                        i(class="fas fa-search")
+                        span Buscar
+                    a(href="/ventas/ropa/historial" class="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+                        i(class="fas fa-undo")
+                        span Limpiar
+
+        //- --- Formulario de Búsqueda ---
+        form(method="GET" action="/ventas/ropa/historial" class="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm mb-8")
+            div(class="flex flex-col md:flex-row gap-4 items-end")
+                div(class="flex-grow w-full")
+                    label(for="busqueda" class="block text-sm font-medium text-gray-700 mb-1") Buscar por Cliente o Fecha
+                    input(type="text" name="busqueda" id="busqueda" placeholder="Escribe aquí..." value=busqueda || '' class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                
+                div(class="flex items-center gap-2 w-full md:w-auto")
+                    button(type="submit" class="w-full md:w-auto flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg transition")
+                        i(class="fas fa-search")
+                        span Buscar
+                    a(href="/ventas/ropa/historial" class="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+                        i(class="fas fa-undo")
+                        span Limpiar
+
+        if !ventas || ventas.length === 0
+            p(class="text-center text-gray-500 mt-10") No se encontraron ventas con esos criterios de búsqueda.
+        else
+            //- En móvil, se convierte en una lista de tarjetas. En escritorio, es una tabla.
+            div(class="bg-white shadow rounded-lg")
+                table(class="min-w-full leading-normal")
+                    //- Encabezado de la tabla (oculto en móvil)
+                    thead(class="hidden md:table-header-group")
+                        tr
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase") Fecha
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase") Cliente
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-right text-xs font-semibold text-gray-600 uppercase") Total Venta
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase") Registrado Por
+                            th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase") Acciones
+                    tbody
+                        each venta in ventas
+                            //- Cada fila es una tarjeta en móvil
+                            tr(class="block md:table-row mb-4 md:mb-0 border md:border-none rounded-lg shadow-md md:shadow-none")
+                                td(class="block md:table-cell px-5 py-3 md:py-5 border-b border-gray-200 text-center")
+                                    span(class="md:hidden font-bold text-gray-600") Fecha: 
+                                    p(class="text-gray-900 whitespace-no-wrap inline")= new Date(venta.fecha_venta).toLocaleDateString('es-VE')
+                                
+                                td(class="block md:table-cell px-5 py-3 md:py-5 border-b border-gray-200 text-center md:text-left")
+                                    span(class="md:hidden font-bold text-gray-600") Cliente: 
+                                    p(class="text-gray-900 font-semibold whitespace-no-wrap inline")= venta.cliente ? `${venta.cliente.nombre} ${venta.cliente.apellidos}` : 'Consumidor Final'
+                                
+                                td(class="block md:table-cell px-5 py-3 md:py-5 border-b border-gray-200 text-center md:text-right")
+                                    span(class="md:hidden font-bold text-gray-600") Total: 
+                                    p(class="text-gray-900 font-bold whitespace-no-wrap inline")= venta.total_venta ? `$ ${parseFloat(venta.total_venta).toLocaleString('es-CO')}` : '0'
+                                
+                                td(class="block md:table-cell px-5 py-3 md:py-5 border-b border-gray-200 text-center md:text-left")
+                                    span(class="md:hidden font-bold text-gray-600") Registrado por: 
+                                    p(class="text-gray-900 whitespace-no-wrap inline")= venta.usuario ? venta.usuario.nombre : 'N/A'
+                                
+                                td(class="block md:table-cell px-5 py-3 md:py-5 border-b-0 md:border-b")
+                                    div(class="flex items-center justify-center gap-x-2")
+                                        button(
+                                            type="button"
+                                            class="ver-venta-btn bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-1 rounded-md font-semibold text-xs cursor-pointer"
+                                            data-venta-id=venta.id
+                                        ) Ver
+                                        a(href=`/ventas/ropa/editar/${venta.id}` class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1 rounded-md font-semibold text-xs cursor-pointer") Editar
+                                        form(method="POST" action=`/ventas/ropa/eliminar/${venta.id}` class="form-eliminar")
+                                            input(type="hidden" name="_csrf" value=csrfToken)
+                                            button(type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-md font-semibold text-xs cursor-pointer") Eliminar
+
+            //- Paginación (si existe)
+            if totalPaginas > 1
+                div(class="mt-8")
+                    include ../../layout/paginacion
+
+    //- --- ¡NUEVA MODAL AÑADIDA! ---
+    div(id="modal-venta-ropa" class="hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-75 p-4")
+        div(class="bg-white rounded-lg shadow-xl w-full sm:max-w-md max-h-full flex flex-col")
+            div(class="bg-green-500 p-4 rounded-t-lg")
+                h2(class="text-2xl font-bold text-white text-center tracking-wide") Detalle de Venta
+            div(class="flex justify-between items-center p-5 border-b")
+                h3(id="modal-venta-titulo" class="text-xl font-bold text-gray-800") Información de la Venta
+                button(id="modal-venta-cerrar" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center cursor-pointer")
+                    i(class="fas fa-times fa-lg")
+            div(id="modal-venta-cuerpo" class="p-6 overflow-y-auto")
+                //- Contenido se llenará con JavaScript
+            div(id="modal-venta-footer" class="flex items-center justify-end p-4 border-t space-x-3")
+                button(id="btn-venta-cerrar-footer" type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg") Cerrar
+
+block scripts
+  //- ... tus scripts existentes (como gestionAlertas.js)
+  //- --- AÑADE EL NUEVO SCRIPT PARA LA MODAL ---
+  script(src="/js/modalVentaRopa.js")

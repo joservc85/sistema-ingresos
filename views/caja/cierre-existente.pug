@@ -1,0 +1,51 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-3xl md:text-4xl my-10 font-extrabold text-center text-yellow-600") Cierre de Caja ya Realizado
+        h2(class="text-center text-2xl font-bold text-gray-700")= `Resumen del ${new Date(cierre.fecha_cierre + 'T12:00:00').toLocaleDateString('es-VE')}`
+
+        div(class="mt-8 mx-auto max-w-2xl px-4")
+            //- Botón para regresar
+            div(class="flex justify-start mb-6")
+                a(href="/mis-actividades" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Inicio
+
+            //- Tarjeta con el resumen del cierre guardado
+            div(class="bg-white p-6 md:p-8 rounded-lg shadow-lg border-t-4 border-yellow-400")
+                h3(class="text-xl font-bold text-gray-800 border-b pb-3 mb-4") Resumen Guardado
+
+                div(class="space-y-3 text-lg")
+                    //- Totales del Sistema
+                    div(class="flex justify-between items-center")
+                        span(class="text-gray-600") Total Efectivo (Sistema):
+                        span(class="font-semibold text-gray-800") $#{parseFloat(cierre.total_efectivo_sistema).toLocaleString('es-CO')}
+                    
+                    //- Totales Contados
+                    div(class="flex justify-between items-center")
+                        span(class="text-gray-600") Total Efectivo (Contado):
+                        span(class="font-semibold text-blue-600") $#{parseFloat(cierre.total_efectivo_contado).toLocaleString('es-CO')}
+
+                    //- Descuadre
+                    div(class="flex justify-between items-center")
+                        span(class="text-gray-600") Descuadre:
+                        span(class=`font-bold text-xl ${cierre.descuadre < 0 ? 'text-red-600' : 'text-green-600'}`)= `$${parseFloat(cierre.descuadre).toLocaleString('es-CO')}`
+
+                    //- Otros Totales
+                    div(class="border-t pt-3 mt-3 space-y-3")
+                        div(class="flex justify-between items-center")
+                            span(class="text-gray-600") Total Datafono:
+                            span(class="font-semibold text-gray-800") $#{parseFloat(cierre.total_datafono).toLocaleString('es-CO')}
+                        div(class="flex justify-between items-center")
+                            span(class="text-gray-600") Total Transferencia:
+                            span(class="font-semibold text-gray-800") $#{parseFloat(cierre.total_transferencia).toLocaleString('es-CO')}
+                        div(class="flex justify-between items-center")
+                            span(class="text-gray-600") Total Vales:
+                            span(class="font-semibold text-red-600") -$#{parseFloat(cierre.total_vales).toLocaleString('es-CO')}
+                
+                //- Observaciones
+                if cierre.observaciones
+                    div(class="mt-6 pt-4 border-t")
+                        h4(class="font-bold text-gray-800") Observaciones:
+                        p(class="text-gray-600 mt-2 bg-gray-50 p-3 rounded-md")= cierre.observaciones

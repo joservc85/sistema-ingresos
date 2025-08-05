@@ -45,7 +45,7 @@ block contenido
                                 span(class=`${personal.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-xs font-medium px-2.5 py-1 rounded-full`)= personal.activo ? 'Activo' : 'Inactivo' 
                                 
                                 //- Botones de acción con el nuevo diseño de iconos
-                                if usuario && usuario.role && usuario.role.nombre === 'Admin'
+                                if usuario && usuario.role && usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor'
                                     div(class="flex items-center space-x-2")
                                         a(href=`/personal/editar/${personal.id}` title="Editar" class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors")
                                             i(class="fas fa-pencil-alt text-sm")

@@ -1,36 +1,37 @@
 const articulos = [
-    { id: 1, nombre_articulo: 'BOLSAS NEGRAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 2, nombre_articulo: 'LIMPIADOR TOALLA JABON', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 4, nombre_articulo: 'RECIBO AGUA', descripcion: 'Pago de servicio de agua', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 2, unidad_medida_Id: 6 }, // Corregido
-    { id: 5, nombre_articulo: 'CUENTA SPA CLIENTE SALEM', descripcion: 'Cuenta/Crédito de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 2, unidad_medida_Id: 6 }, // Corregido
-    { id: 6, nombre_articulo: 'CARRO MERCANCIA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 7, nombre_articulo: 'MERCANCIA', descripcion: 'Mercancía general', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 8, nombre_articulo: 'SALEM CLIENTA PAGO', descripcion: 'Pago recibido de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 2, unidad_medida_Id: 6 }, // Corregido
-    { id: 11, nombre_articulo: 'VINAGRE', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 4 },
-    { id: 12, nombre_articulo: 'PALITOS DE NARANJA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 13, nombre_articulo: 'ROLLOS', descripcion: 'Rollos varios', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 16, nombre_articulo: 'TIJERA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 17, nombre_articulo: 'PAQUETE ALGODHON', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 18, nombre_articulo: 'BURBUJAS EFERVESCENTES', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 19, nombre_articulo: 'IMAN', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 20, nombre_articulo: 'CLIP', descripcion: '', activo: false, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 22, nombre_articulo: 'POLYGEL CLEAR', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 24, nombre_articulo: 'PAGO ADRIANA', descripcion: 'Pago a Adriana', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 4, unidad_medida_Id: 6 }, // Corregido
-    { id: 25, nombre_articulo: 'RECIBO LUZ CASA WINI', descripcion: 'Pago de servicio de luz de casa Wini', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 2, unidad_medida_Id: 6 }, // Corregido
-    { id: 26, nombre_articulo: 'REMOVEDOR Y SPONG', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 27, nombre_articulo: 'JABON PAPEL TOALLAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 28, nombre_articulo: 'BRILLOS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 29, nombre_articulo: 'CORTACUTICULA', descripcion: 'cortacutícula', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 30, nombre_articulo: 'TAPABOCAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 31, nombre_articulo: 'CHAPA PARA VITRINA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 32, nombre_articulo: 'BASE RUBBER', descripcion: 'BASE RUBBER', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 33, nombre_articulo: 'QUESITOS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 2 },
-    { id: 34, nombre_articulo: 'BASE', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 35, nombre_articulo: 'AGUJAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 36, nombre_articulo: 'PAGO SALEM CLIENTA', descripcion: 'Pago recibido de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 4, unidad_medida_Id: 6 }, // Corregido
-    { id: 38, nombre_articulo: 'BASURA', descripcion: 'Servicio de basura', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 2, unidad_medida_Id: 6 }, // Corregido
-    { id: 39, nombre_articulo: 'Tinte rojo', descripcion: '', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 42, nombre_articulo: 'Articulo de prueba', descripcion: 'Articulo de prueba dos', activo: true, stock_minimo: 1, stock_actual: 2, categoriaId: 4, unidad_medida_Id: 4 }
+    { id: 1, nombre_articulo: 'BOLSAS NEGRAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 1 },
+    { id: 2, nombre_articulo: 'LIMPIADOR TOALLA JABON', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 4, nombre_articulo: 'RECIBO AGUA', descripcion: 'Pago de servicio de agua', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 2, unidad_medida_Id: 6 },
+    { id: 5, nombre_articulo: 'CUENTA SPA CLIENTE SALEM', descripcion: 'Cuenta/Crédito de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 2, unidad_medida_Id: 6 },
+    { id: 6, nombre_articulo: 'CARRO MERCANCIA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 1 },
+    { id: 7, nombre_articulo: 'MERCANCIA', descripcion: 'Mercancía general', activo: true, stock_minimo: 1, stock_actual: 1.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 8, nombre_articulo: 'SALEM CLIENTA PAGO', descripcion: 'Pago recibido de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 2, unidad_medida_Id: 6 },
+    { id: 11, nombre_articulo: 'VINAGRE', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 4 },
+    { id: 12, nombre_articulo: 'PALITOS DE NARANJA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 3, unidad_medida_Id: 1 },
+    { id: 13, nombre_articulo: 'ROLLOS', descripcion: 'Rollos varios', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 16, nombre_articulo: 'TIJERA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 1 },
+    { id: 17, nombre_articulo: 'PAQUETE ALGODHON', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 18, nombre_articulo: 'BURBUJAS EFERVESCENTES', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 19, nombre_articulo: 'IMAN', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 20, nombre_articulo: 'CLIP', descripcion: null, activo: false, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 1 },
+    { id: 22, nombre_articulo: 'POLYGEL CLEAR', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 24, nombre_articulo: 'PAGO ADRIANA', descripcion: 'Pago a Adriana', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 3, unidad_medida_Id: 6 },
+    { id: 25, nombre_articulo: 'RECIBO LUZ CASA WINI', descripcion: 'Pago de servicio de luz de casa Wini', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 2, unidad_medida_Id: 6 },
+    { id: 26, nombre_articulo: 'REMOVEDOR Y SPONG', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 27, nombre_articulo: 'JABON PAPEL TOALLAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 28, nombre_articulo: 'BRILLOS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 1.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 29, nombre_articulo: 'CORTACUTICULA', descripcion: 'cortacutícula', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 30, nombre_articulo: 'TAPABOCAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 31, nombre_articulo: 'CHAPA PARA VITRINA', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 1 },
+    { id: 32, nombre_articulo: 'BASE RUBBER', descripcion: 'BASE RUBBER', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 33, nombre_articulo: 'QUESITOS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 2 },
+    { id: 34, nombre_articulo: 'BASE', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 0.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 35, nombre_articulo: 'AGUJAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 36, nombre_articulo: 'PAGO SALEM CLIENTA', descripcion: 'Pago recibido de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 3, unidad_medida_Id: 6 },
+    { id: 38, nombre_articulo: 'BASURA', descripcion: 'Servicio de basura', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 2, unidad_medida_Id: 6 },
+    { id: 39, nombre_articulo: 'Tinte rojo', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
+    { id: 42, nombre_articulo: 'Articulo de prueba', descripcion: 'Articulo de prueba dos', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 4 },
+    { id: 43, nombre_articulo: 'prueba de tinte', descripcion: 'tintes para el pelo', activo: true, stock_minimo: 1, stock_actual: 20.00, categoriaId: 1, unidad_medida_Id: 1 }
 ];
 
 export default articulos;

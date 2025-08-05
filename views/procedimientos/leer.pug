@@ -47,7 +47,7 @@ block contenido
 
                                     //- Contenedor para los botones de acción
                                     div(class="flex items-center space-x-2")
-                                        - const isAdmin = usuario && usuario.role && usuario.role.nombre === 'Admin'
+                                        - const isAdmin = usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
                                         
                                         //- Botón Editar
                                         a(

@@ -1,4 +1,5 @@
 import Actividad from './Actividad.js'
+import Factura from './Factura.js';
 import DetalleActividad from './DetalleActividad.js';
 import Personal from './Personal.js'
 import Cliente from './Cliente.js'
@@ -13,6 +14,16 @@ import Articulo from './Articulo.js'
 import CategoriaArticulo from './CategoriaArticulo.js';
 import UnidadDeMedida from './UnidadDeMedida.js';
 import GastoAdicionalDetalle from './GastoAdicionalDetalle.js'
+import GastoAdministrativo from './GastoAdministrativo.js';
+import DetalleGastoAdministrativo from './DetalleGastoAdministrativo.js';
+import ArticuloRopa from './ArticuloRopa.js';
+import VentaRopa from './VentaRopa.js';
+import DetalleVentaRopa from './DetalleVentaRopa.js';
+// --- ¡Cierre de Caja! ---
+import FormaDePago from './FormaDePago.js';
+import Banco from './Banco.js';
+import CierreDeCaja from './CierreDeCaja.js';
+import Auditoria from './Auditoria.js';
 
 // Relaciones de 1:1 correctas para Sequelize (aunque son de uno a muchos)
 
@@ -48,6 +59,10 @@ DetalleActividad.belongsTo(Actividad, { foreignKey: 'actividadId' });
 Articulo.hasMany(DetalleActividad, { foreignKey: 'articuloId' });
 DetalleActividad.belongsTo(Articulo, { foreignKey: 'articuloId' });
 
+// Una Actividad puede tener una Factura
+Actividad.hasOne(Factura, { foreignKey: 'actividadId' });
+Factura.belongsTo(Actividad, { foreignKey: 'actividadId' });
+
 // --- ¡Nuevas relaciones para Gastos Adicionales y Artículos! ---
 
 // Un GastoAdicional pertenece a un Proveedor
@@ -74,18 +89,65 @@ Articulo.belongsTo(CategoriaArticulo, { foreignKey: 'categoriaId',as: 'categoria
 // Un Artículo pertenece a una Unidad de Medida
 Articulo.belongsTo(UnidadDeMedida, {  foreignKey: 'unidad_medida_Id',  as: 'unidad'});
 
+// Un Gasto Administrativo es registrado por un Usuario
+GastoAdministrativo.belongsTo(Usuario, { foreignKey: 'usuarioId' });
+Usuario.hasMany(GastoAdministrativo, { foreignKey: 'usuarioId' });
+
+// Un Gasto Administrativo tiene muchos detalles (artículos)
+GastoAdministrativo.hasMany(DetalleGastoAdministrativo, {  as: 'detalles', foreignKey: 'gastoId' });
+DetalleGastoAdministrativo.belongsTo(GastoAdministrativo, { foreignKey: 'gastoId' });
+
+// Un Detalle de Gasto se refiere a un Artículo
+DetalleGastoAdministrativo.belongsTo(Articulo, { foreignKey: 'articuloId' });
+Articulo.hasMany(DetalleGastoAdministrativo, { foreignKey: 'articuloId' });
+
 // Una Unidad de Medida puede tener muchos Artículos
 UnidadDeMedida.hasMany(Articulo, { foreignKey: 'unidad_medida_Id' });
-
 // Un Usuario pertenece a un Rol (Usuario N -> 1 Rol)
 Usuario.belongsTo(Rol, { foreignKey: 'rolId', onDelete: 'CASCADE' });
+
+// Una Venta de Ropa es registrada por un Usuario
+VentaRopa.belongsTo(Usuario, { foreignKey: 'usuarioId' });
+Usuario.hasMany(VentaRopa, { foreignKey: 'usuarioId' });
+
+// Una Venta de Ropa puede tener un Cliente (opcional)
+VentaRopa.belongsTo(Cliente, { foreignKey: 'clienteId', allowNull: true });
+Cliente.hasMany(VentaRopa, { foreignKey: 'clienteId' });
+
+// Una Venta de Ropa tiene muchos detalles (artículos)
+VentaRopa.hasMany(DetalleVentaRopa, { as: 'detalles', foreignKey: 'ventaRopaId' });
+DetalleVentaRopa.belongsTo(VentaRopa, { foreignKey: 'ventaRopaId' });
+// Un Detalle de Venta se refiere a un Artículo de Ropa
+DetalleVentaRopa.belongsTo(ArticuloRopa, { foreignKey: 'articuloRopaId' });
+ArticuloRopa.hasMany(DetalleVentaRopa, { foreignKey: 'articuloRopaId' });
+// Una Venta de Ropa es registrada por un Usuario
+VentaRopa.belongsTo(Usuario, { foreignKey: 'usuarioId' });
+Usuario.hasMany(VentaRopa, { foreignKey: 'usuarioId' });
+// Una Venta de Ropa puede tener un Cliente (opcional)
+VentaRopa.belongsTo(Cliente, { foreignKey: 'clienteId' });
+Cliente.hasMany(VentaRopa, { foreignKey: 'clienteId' });
+
+// --- NUEVAS RELACIONES PARA CIERRE DE CAJA ---
+// Relaciones para Actividad
+Actividad.belongsTo(FormaDePago, { foreignKey: 'formaDePagoId' });
+Actividad.belongsTo(Banco, { foreignKey: 'bancoId' });
+
+// Relaciones para CierreDeCaja
+CierreDeCaja.belongsTo(Usuario, { foreignKey: 'usuarioId' });
+Usuario.hasMany(CierreDeCaja, { foreignKey: 'usuarioId' });
+
 
 // Un Rol puede tener muchos Usuarios (Rol 1 -> N Usuarios)
 Rol.hasMany(Usuario, { foreignKey: 'rolId' });
 
+// Una Auditoría es registrada por un Usuario
+Auditoria.belongsTo(Usuario, { foreignKey: 'usuarioId' });
+Usuario.hasMany(Auditoria, { foreignKey: 'usuarioId' });
+
 
 export{
     Actividad,
+    Factura,
     DetalleActividad,
     Personal,
     Cliente,
@@ -98,6 +160,15 @@ export{
     Articulo,       
     GastoAdicionalDetalle,
     CategoriaArticulo,
-    UnidadDeMedida
+    UnidadDeMedida,
+    GastoAdministrativo,
+    DetalleGastoAdministrativo,
+    ArticuloRopa,
+    VentaRopa,
+    DetalleVentaRopa,
+    FormaDePago,
+    Banco,
+    CierreDeCaja,
+    Auditoria
 }
 

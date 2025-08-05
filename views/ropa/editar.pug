@@ -1,0 +1,85 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-3xl md:text-4xl my-10 font-extrabold text-center") Editar 
+            span(class="font-normal") Artículo de Ropa
+
+        div(class="bg-white shadow-lg py-8 px-4 rounded-lg max-w-4xl mx-auto")
+            div(class="flex justify-start mb-6")
+                a(href="/inventario/ropa" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar al Inventario
+
+            //- El formulario apunta a la ruta de edición con el ID del artículo
+            form(method="POST")
+                input(type="hidden" name="_csrf" value=csrfToken)
+
+                //- Muestra de errores
+                if errores
+                    div(class="mb-6")
+                        each error in errores
+                            div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
+                                p(class="font-bold")= error.msg
+
+                fieldset(class="border border-gray-300 p-4 rounded-md")
+                    legend(class="px-2 text-lg font-semibold text-gray-700") Información del Artículo
+                    
+                    //- Grid responsivo: 1 columna en móvil, 2 en escritorio
+                    div(class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4")
+                        //- Nombre del Artículo
+                        div
+                            label(for="nombre" class="block text-sm font-medium text-gray-700") Nombre del Artículo
+                            input#nombre(type="text" name="nombre" value=articulo.nombre class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+
+                        //- Marca
+                        div
+                            label(for="marca" class="block text-sm font-medium text-gray-700") Marca
+                            input#marca(type="text" name="marca" value=articulo.marca class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                        
+                        //- Color
+                        div
+                            label(for="color" class="block text-sm font-medium text-gray-700") Color
+                            input#color(type="text" name="color" value=articulo.color class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+
+                        //- Talla
+                        div
+                            label(for="talla" class="block text-sm font-medium text-gray-700") Talla
+                            input#talla(type="text" name="talla" value=articulo.talla placeholder="Ej: S, M, L ó 38" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+
+                        //- Stock Actual
+                        div
+                            label(for="stock_actual" class="block text-sm font-medium text-gray-700") Stock Actual
+                            input#stock_actual(type="number" name="stock_actual" value=articulo.stock_actual min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                        
+                        //- Precio de Compra
+                        div
+                            label(for="precio_compra" class="block text-sm font-medium text-gray-700") Precio de Compra
+                            input#precio_compra(type="number" name="precio_compra" value=parseFloat(articulo.precio_compra) || '' min="0" step="0.01" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+
+                        //- Precio de Venta
+                        div(class="md:col-span-2")
+                            label(for="precio_venta" class="block text-sm font-medium text-gray-700") Precio de Venta
+                            input#precio_venta(type="number" name="precio_venta" value=parseFloat(articulo.precio_venta) min="0" step="0.01" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                        
+                        //- Descripción (ocupa todo el ancho)
+                        div(class="md:col-span-2")
+                            label(for="descripcion" class="block text-sm font-medium text-gray-700") Descripción
+                            textarea#descripcion(name="descripcion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")= articulo.descripcion
+
+                        //- Observación (ocupa todo el ancho)
+                        div(class="md:col-span-2")
+                            label(for="observacion" class="block text-sm font-medium text-gray-700") Observación
+                            textarea#observacion(name="observacion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")= articulo.observacion
+                        
+                        //- --- ¡NUEVO CAMPO AÑADIDO! ---
+                        //- Estado (Activo/Inactivo)
+                        div(class="md:col-span-2 border-t pt-4 mt-4")
+                            div(class="flex items-center")
+                                input#activo(type="checkbox" name="activo" checked=articulo.activo class="h-5 w-5 text-fuchsia-600 border-gray-300 rounded focus:ring-fuchsia-500")
+                                label(for="activo" class="ml-3 block text-sm font-medium text-gray-900") Marcar si el artículo está Activo para la venta
+
+                //- Botón de Guardar
+                div(class="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4")
+                    a(href="/inventario/ropa" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md transition-colors") Cancelar
+                    input(type="submit", value="Guardar Cambios", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer transition-all")

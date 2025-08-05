@@ -1,0 +1,201 @@
+import { Op } from 'sequelize';
+import { Actividad, FormaDePago, Precio, CierreDeCaja, Usuario, Auditoria } from '../models/index.js';
+import db from '../config/db.js';
+
+// Muestra la vista del cierre de caja para una fecha específica
+const mostrarCierre = async (req, res) => {
+    const fechaQuery = req.query.fecha || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+
+    try {
+        // Verificar si ya existe un cierre para esta fecha
+        const cierreExistente = await CierreDeCaja.findOne({
+            where: {
+                fecha_cierre: fechaQuery,
+                estado: 'Consolidado'
+            }
+        });
+
+        if (cierreExistente) {
+            // Si ya existe, mostramos los datos guardados (en una futura vista de "ver cierre")
+            // Por ahora, redirigimos o mostramos un mensaje.
+            return res.render('caja/cierre-existente', {
+                pagina: 'Cierre ya Realizado',
+                cierre: cierreExistente,
+                csrfToken: req.csrfToken(),
+                barra: true,
+                piePagina: true,
+            });
+        }
+
+        const inicioDelDia = new Date(`${fechaQuery}T00:00:00.000-05:00`); // Ajustado a la zona horaria de Bogotá (GMT-5)
+        const finDelDia = new Date(`${fechaQuery}T23:59:59.999-05:00`); // Ajustado a la zona horaria de Bogotá (GMT-5)
+
+        const [actividadesDelDia, valesDelDia] = await Promise.all([
+            Actividad.findAll({
+                where: { createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, vales: null },
+                include: [Precio, FormaDePago]
+            }),
+            Actividad.findAll({
+                where: { createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, vales: { [Op.ne]: null } }
+            })
+        ]);
+
+        let totalEfectivo = 0, totalDatafono = 0, totalTransferencia = 0;
+        const totalVales = valesDelDia.reduce((total, vale) => total + parseFloat(vale.vales), 0);
+
+        actividadesDelDia.forEach(actividad => {
+            const monto = parseFloat(actividad.precio?.monto || 0);
+            const formaDePago = actividad.formas_de_pago?.nombre;
+
+            if (formaDePago === 'Efectivo') totalEfectivo += monto;
+            else if (formaDePago === 'Datafono') totalDatafono += monto;
+            else if (formaDePago === 'Transferencia') totalTransferencia += monto;
+        });
+
+        const totalVentasDia = totalEfectivo + totalDatafono + totalTransferencia;
+
+        res.render('caja/cierre', {
+            pagina: `Cierre de Caja - ${new Date(fechaQuery + 'T12:00:00').toLocaleDateString('es-VE')}`,
+            csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
+            fechaSeleccionada: fechaQuery,
+            totalEfectivo,
+            totalDatafono,
+            totalTransferencia,
+            totalVales,
+            totalVentasDia
+        });
+
+    } catch (error) {
+        console.error('Error al calcular el cierre de caja:', error);
+    }
+};
+
+// Guarda el cierre de caja en la base de datos
+const guardarCierre = async (req, res) => {
+    const { id: usuarioId } = req.usuario;
+    const { fecha_cierre, total_efectivo_sistema, total_efectivo_contado, desglose_efectivo, descuadre, total_datafono, total_transferencia, total_vales, total_ventas_dia, observaciones } = req.body;
+
+    try {
+        // Prevenir cierres duplicados
+        const cierreExistente = await CierreDeCaja.findOne({ where: { fecha_cierre } });
+        if (cierreExistente) {
+            return res.redirect(`/cierre-caja?fecha=${fecha_cierre}&error=Ya existe un cierre para esta fecha.`);
+        }
+
+        await CierreDeCaja.create({
+            fecha_cierre,
+            total_efectivo_sistema,
+            total_efectivo_contado,
+            desglose_efectivo: JSON.parse(desglose_efectivo),
+            descuadre,
+            total_datafono,
+            total_transferencia,
+            total_vales,
+            total_ventas_dia,
+            observaciones,
+            usuarioId
+        });
+
+        res.redirect('/mis-actividades?mensaje=Cierre de caja guardado exitosamente.');
+
+    } catch (error) {
+        console.error('Error al guardar el cierre de caja:', error);
+        res.redirect(`/cierre-caja?fecha=${fecha_cierre}&error=No se pudo guardar el cierre.`);
+    }
+};
+
+// Muestra el historial de todos los cierres de caja ---
+const listarCierres = async (req, res) => {
+    try {
+        const cierres = await CierreDeCaja.findAll({
+            include: [
+                { model: Usuario, attributes: ['nombre'] }
+            ],
+            order: [['fecha_cierre', 'DESC']]
+        });
+
+        res.render('caja/historial', {
+            pagina: 'Historial de Cierres de Caja',
+            csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
+            cierres
+        });
+    } catch (error) {
+        console.error('Error al listar los cierres de caja:', error);
+        // Manejo de error
+    }
+};
+
+// Devuelve los datos de un cierre específico como JSON ---
+const verCierre = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const cierre = await CierreDeCaja.findByPk(id, {
+            include: [{ model: Usuario, attributes: ['nombre'] }]
+        });
+
+        if (!cierre) {
+            return res.status(404).json({ msg: 'Cierre no encontrado' });
+        }
+        res.json(cierre);
+    } catch (error) {
+        console.error('Error al ver el cierre de caja:', error);
+        res.status(500).json({ msg: 'Error en el servidor' });
+    }
+};
+
+// Anular Cierre e caja
+const anularCierre = async (req, res) => {
+    const { id } = req.params;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
+
+    // Solo el Admin puede anular
+    if (req.usuario.role.nombre !== 'Admin') {
+        return res.redirect(`/cierre-caja/historial?error=No tienes permiso para anular cierres.`);
+    }
+
+    const t = await db.transaction();
+    try {
+        const cierre = await CierreDeCaja.findByPk(id, { transaction: t });
+
+        if (!cierre) {
+            throw new Error('Cierre de caja no encontrado.');
+        }
+
+        if (cierre.estado === 'Anulado') {
+            throw new Error('Este cierre ya ha sido anulado previamente.');
+        }
+
+        // Cambiar el estado a "Anulado"
+        cierre.estado = 'Anulado';
+        await cierre.save({ transaction: t });
+
+        // Registrar la acción en la tabla de auditoría
+        await Auditoria.create({
+            accion: 'ANULAR',
+            tabla_afectada: 'cierres_de_caja',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} anuló el cierre de caja del día ${cierre.fecha_cierre}.`,
+            usuarioId: usuarioId
+        }, { transaction: t });
+
+        await t.commit();
+        res.redirect('/cierre-caja/historial?mensaje=Cierre de caja anulado correctamente.');
+
+    } catch (error) {
+        await t.rollback();
+        console.error('Error al anular el cierre de caja:', error);
+        res.redirect(`/cierre-caja/historial?error=${encodeURIComponent(error.message)}`);
+    }
+};
+
+export {
+    mostrarCierre,
+    guardarCierre,
+    listarCierres,
+    verCierre,
+    anularCierre
+};

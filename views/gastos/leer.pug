@@ -22,12 +22,16 @@ block styles
 
 block contenido
   div(class="py-10 max-w-7xl mx-auto")
-    //- Títulos y botón de registro siempre son visibles
-    h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
-      | Sistema 
+    //- Títulos y botones de registro
+    h1(class="text-3xl md:text-4xl my-10 font-extrabold text-center text-gray-800")
+      | Sistema de 
       span(class="font-normal") Gastos
-    h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
-    a(href="/gastos/crear" class="inline-block mt-8 bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors duration-300") + Registrar Nuevo Gasto
+    h2(class="text-center text-xl md:text-2xl font-bold text-fuchsia-600")= pagina
+    
+    //- Contenedor para los botones de registro
+    div(class="mt-8 flex flex-wrap items-center gap-4")
+        a(href="/gastos/crear" class="inline-block bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors duration-300") + Registrar Nuevo Gasto
+        a(href="/gastos-administrativos/registrar" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors duration-300") + Gasto Administrativo
 
     //- Condición principal: Verificamos si existen gastos
     if !gastos || !gastos.length
@@ -36,85 +40,95 @@ block contenido
         p(class="text-xl text-gray-600") Aún no se han registrado gastos.
         a(href="/gastos/crear" class="mt-4 inline-block bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-4 rounded-md transition-colors") ¡Registra el primero!
     else
-      //- Si SÍ hay gastos, mostramos todo lo que sigue (filtros, tabla, modal)
-      
-      //- 1. Panel de Búsqueda y Filtros
+      //- Si SÍ hay gastos, mostramos todo lo que sigue
+
+      //- 1. Panel de Búsqueda y Filtros Responsivo
       div(class="mt-8 bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm mb-8")
-
         form(method="GET", action="/gastos")
-
-          div(class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end")
-            div(class="lg:col-span-2")
-              label(for="busqueda" class="block text-sm font-medium text-gray-700 mb-1") Buscar por Factura, Proveedor, Artículo...
-              input(type="text" name="busqueda" id="busqueda" placeholder="Escribe aquí..." value=(query.busqueda || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500")
+          div(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end")
+            div(class="sm:col-span-2")
+              label(for="busqueda" class="block text-sm font-medium text-gray-700 mb-1") Buscar...
+              input(type="text" name="busqueda" id="busqueda" placeholder="Factura, Proveedor, Artículo..." value=(query.busqueda || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
             div
               label(for="proveedorId" class="block text-sm font-medium text-gray-700 mb-1") Proveedor
-              select(name="proveedorId" id="proveedorId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500")
+              select(name="proveedorId" id="proveedorId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
                 option(value="") Todos
                 each proveedor in proveedores
                   option(value=proveedor.id selected=(query.proveedorId == proveedor.id))= proveedor.razon_social
             div
               label(for="fecha_inicio" class="block text-sm font-medium text-gray-700 mb-1") Desde
-              input(type="date" name="fecha_inicio" id="fecha_inicio" value=(query.fecha_inicio || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500")
+              input(type="date" name="fecha_inicio" id="fecha_inicio" value=(query.fecha_inicio || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
             div
               label(for="fecha_fin" class="block text-sm font-medium text-gray-700 mb-1") Hasta
               input(type="date" name="fecha_fin" id="fecha_fin" value=(query.fecha_fin || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
-            div(class="flex items-center gap-x-2")
-              button(type="submit" class="flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg transition cursor-pointer")
+            //- Botones de filtro que se apilan en móvil
+            div(class="col-span-1 sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-center gap-2")
+              button(type="submit" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg transition cursor-pointer")
                 i(class="fas fa-search")
                 span Buscar
-              a(href="/gastos" class="flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+              a(href="/gastos" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
                 i(class="fas fa-undo")
                 span Limpiar
 
-      //- 2. Tabla de Gastos
+      //- 2. Tabla de Gastos Responsiva (se convierte en tarjetas en móvil)
       div(class="bg-white shadow-lg rounded-lg overflow-x-auto")
         table(class="min-w-full leading-normal")
           thead
             tr
-              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider") Fecha Gasto
-              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider") Proveedor
-              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider") Monto Total
-              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider") Registrado Por
+              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider") Fecha
+              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider") Tipo y Descripción
+              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider") Monto
+              th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider") Registrado Por
               th(class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider") Acciones
           tbody
             each gasto in gastos
               tr
                 td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center")
-                  p(class="text-gray-900")= new Date(gasto.fecha_gasto).toLocaleDateString('es-VE')
-                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center")
-                  p(class="text-gray-900 font-semibold")= gasto.proveedore ? gasto.proveedore.razon_social : 'PROVEEDOR ELIMINADO'
-                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center")
-                  p(class="text-gray-900 font-bold")= `$${Number(gasto.valor_total).toLocaleString('es-CO')}`
-                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center")
-                  p(class="text-gray-900")= gasto.usuario.nombre
+                  p(class="text-gray-900")= new Date(gasto.fecha).toLocaleDateString('es-VE')
                 
                 td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
-                  if usuario && usuario.role && usuario.role.nombre === 'Admin'
-                    div(class="flex items-center justify-center gap-x-2")
-                      button(type="button" data-gasto-id=gasto.id class="ver-gasto-btn bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-md font-semibold text-xs cursor-pointer") Ver
-                      a(href=`/gastos/editar/${gasto.id}` class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md font-semibold text-xs transition-colors") Editar
-                      form(method="POST" action=`/gastos/eliminar/${gasto.id}` class="form-eliminar")
-                        input(type="hidden" name="_csrf" value=csrfToken)
-                        button(type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md font-semibold text-xs transition-colors cursor-pointer") Eliminar
+                  if gasto.esAdmin
+                    span(class="px-2 py-1 font-semibold leading-tight text-blue-700 bg-blue-100 rounded-full") Consumo Interno
+                    p(class="text-gray-800 mt-1")= gasto.descripcion
                   else
-                    div(class="flex items-center justify-center gap-x-2")
-                      button(type="button" data-gasto-id=gasto.id class="ver-gasto-btn bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-md font-semibold text-xs cursor-pointer") Ver
-                      a(href="#" class="bg-gray-400 text-white px-3 py-1 rounded-md font-semibold text-xs transition-colors pointer-events-none cursor-not-allowed" title="No tienes permiso para editar") Editar
-                      form(method="POST" action="#")
+                    span(class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full") Compra
+                    p(class="text-gray-800 font-semibold mt-1")= gasto.descripcion
+                
+                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right")
+                  if gasto.monto
+                    p(class="text-gray-900 font-bold")= `$${Number(gasto.monto).toLocaleString('es-CO')}`
+                  else
+                    p(class="text-gray-500 italic") N/A
+                
+                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
+                  p(class="text-gray-900")= gasto.usuarioNombre
+                
+                td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
+                  - const isAdminUser = usuario && usuario.role && usuario.role.nombre === 'Admin' ||  usuario.role.nombre === 'Supervisor'
+                  div(class="flex items-center justify-center gap-x-2")
+                    if gasto.esAdmin
+                      //- Acciones para Gastos Administrativos
+                      button(type="button" data-gasto-admin-id=gasto.id class="ver-gasto-admin-btn bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-md font-semibold text-xs cursor-pointer") Ver
+                      a(href=isAdminUser ? `/gastos-administrativos/editar/${gasto.id}` : '#' class=`${isAdminUser ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'} text-white px-3 py-1 rounded-md font-semibold text-xs`) Editar
+                      form(method="POST" action=isAdminUser ? `/gastos-administrativos/eliminar/${gasto.id}` : '#' class="form-eliminar")
                         input(type="hidden" name="_csrf" value=csrfToken)
-                        button(type="submit" class="bg-gray-400 text-white px-3 py-1 rounded-md font-semibold text-xs transition-colors cursor-not-allowed" title="No tienes permiso para eliminar" disabled) Eliminar
+                        button(type=isAdminUser ? "submit" : "button" disabled=!isAdminUser class=`${isAdminUser ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'} text-white px-3 py-1 rounded-md font-semibold text-xs`) Eliminar
+                    else
+                      //- Acciones para Compras a Proveedor
+                      button(type="button" data-gasto-id=gasto.id class="ver-gasto-btn bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-md font-semibold text-xs cursor-pointer") Ver
+                      a(href=isAdminUser ? `/gastos/editar/${gasto.id}` : '#' class=`${isAdminUser ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'} text-white px-3 py-1 rounded-md font-semibold text-xs`) Editar
+                      form(method="POST" action=isAdminUser ? `/gastos/eliminar/${gasto.id}` : '#' class="form-eliminar")
+                        input(type="hidden" name="_csrf" value=csrfToken)
+                        button(type=isAdminUser ? "submit" : "button" disabled=!isAdminUser class=`${isAdminUser ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'} text-white px-3 py-1 rounded-md font-semibold text-xs`) Eliminar
 
       //- 3. Paginación
       if totalPaginas > 1
         div(class="mt-8")
           include ../layout/paginacion
-          
-      //- 4. Estructura del Modal (también dentro del 'else')
-      div(id="modal-gasto" class="hidden fixed inset-0 z-50 items-center justify-center bg-gray-900 bg-opacity-75")
-        
-        div(class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full flex flex-col")
-          
+      
+      //- 4. Estructura del Modal (con ancho responsivo)
+      div(id="modal-gasto" class="hidden fixed inset-0 z-50 items-center justify-center bg-gray-900 bg-opacity-75 p-4")
+        div(class="bg-white rounded-lg shadow-xl w-full sm:w-auto sm:max-w-2xl max-h-full flex flex-col")
           div(class="bg-fuchsia-400 p-4 rounded-t-lg")
             h2(class="text-3xl font-bold text-white text-center tracking-wide") Gastos Damaris SPA
           div(class="flex justify-between items-center p-5 border-b")
@@ -125,13 +139,26 @@ block contenido
           div(id="modal-cuerpo" class="p-6 overflow-y-auto")
 
           div(id="modal-footer" class="flex items-center justify-end p-4 border-t space-x-3")
-            button(id="btn-cerrar-footer" type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors cursor-pointer") Cerrar            
-            
+            button(id="btn-cerrar-footer" type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors cursor-pointer") Cerrar
             button(id="btn-imprimir" type="button" class="flex items-center text-white bg-blue-500 hover:bg-blue-600 font-medium rounded-lg text-sm px-5 py-2.5 text-center")
               i(class="fas fa-print mr-2")
               | Imprimir
+
+      div(id="modal-gasto-admin" class="hidden fixed inset-0 z-50 items-center justify-center bg-gray-900 bg-opacity-75 p-4")
+        div(class="bg-white rounded-lg shadow-xl w-full sm:max-w-md max-h-full flex flex-col")
+          div(class="bg-blue-500 p-4 rounded-t-lg")
+            h2(class="text-2xl font-bold text-white text-center tracking-wide") Consumo Interno
+          div(class="flex justify-between items-center p-5 border-b")
+            h3(id="modal-admin-titulo" class="text-xl font-bold text-gray-800") Detalle del Consumo
+            button(id="modal-admin-cerrar" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center cursor-pointer")
+              i(class="fas fa-times fa-lg")
+          div(id="modal-admin-cuerpo" class="p-6 overflow-y-auto")
+            //- Contenido se llenará con JavaScript
+          div(id="modal-admin-footer" class="flex items-center justify-end p-4 border-t space-x-3")
+            button(id="btn-admin-cerrar-footer" type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors cursor-pointer") Cerrar
 
 block scripts
   //- Script que controla el modal
   script(src="/js/gastos.js")
   script(src="/js/modalGasto.js")
+  script(src="/js/modalGastoAdmin.js") 

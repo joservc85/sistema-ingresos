@@ -1,5 +1,5 @@
 import { validationResult } from 'express-validator';
-import { Actividad, DetalleActividad, Personal, Cliente, Procedimiento, Precio, Articulo } from '../models/index.js'
+import { Actividad, DetalleActividad, Personal, Cliente, Procedimiento, Precio, Articulo, FormaDePago, Banco, Auditoria } from '../models/index.js'
 import db from '../config/db.js';
 import { Op } from 'sequelize';
 
@@ -17,6 +17,7 @@ const admin = async (req, res) => {
 
   // Obtener todas las actividades con relaciones
   const actividades = await Actividad.findAll({
+    where: { estado: 'Realizada' },
     include: [Cliente, Personal, Procedimiento, Precio,
       {
         model: DetalleActividad,
@@ -118,40 +119,45 @@ const admin = async (req, res) => {
 
 // Mostrar formulario para crear una nueva Actividad
 const crear = async (req, res) => {
-  // Consultar los modelos de Personal, Clientes, Procedimientos (con sus Precios asociados)
-  const [personals, clientes, procedimientos] = await Promise.all([
-    Personal.findAll({ order: [['nombre', 'ASC']] }),
-    Cliente.findAll({ order: [['nombre', 'ASC']] }),
-    Procedimiento.findAll({
-      include: {
-        model: Precio,
-        attributes: ['id', 'monto']
-      },
-      order: [['nombre', 'ASC']]
-    })
-  ]);
+    // --- CONSULTA ACTUALIZADA ---
+    // Ahora también traemos las formas de pago y los bancos
+    const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
+        Personal.findAll({ order: [['nombre', 'ASC']] }),
+        Cliente.findAll({ 
+            where: { activo: true, tipo: { [Op.in]: ['Spa', 'Ambos'] } },
+            order: [['nombre', 'ASC']] 
+        }),
+        Procedimiento.findAll({
+            include: {
+                model: Precio,
+                attributes: ['id', 'monto']
+            },
+            order: [['nombre', 'ASC']]
+        }),
+        Articulo.findAll({
+            where: {
+                categoriaId: 1,
+                stock_actual: { [Op.gt]: 0 }
+            },
+            order: [['nombre_articulo', 'ASC']]
+        }),
+        FormaDePago.findAll(), 
+        Banco.findAll()       
+    ]);
 
-  const articulos = await Articulo.findAll({
-    where: {
-      categoriaId: 1,
-      stock_actual: {
-        [Op.gt]: 0
-      }
-    },
-    order: [['nombre_articulo', 'ASC']]
-  });
-
-  res.render('actividades/crear', {
-    pagina: 'Crear Actividad',
-    barra: true,
-    piePagina: true,
-    csrfToken: req.csrfToken(),
-    personals,
-    clientes,
-    procedimientos,
-    articulos,
-    datos: {}
-  });
+    res.render('actividades/crear', {
+        pagina: 'Crear Actividad',
+        barra: true,
+        piePagina: true,
+        csrfToken: req.csrfToken(),
+        personals,
+        clientes,
+        procedimientos,
+        articulos,
+        formasDePago, 
+        bancos,       
+        datos: {}
+    });
 }
 
 const guardar = async (req, res) => {
@@ -160,18 +166,19 @@ const guardar = async (req, res) => {
     let resultado = validationResult(req);
 
     if (!resultado.isEmpty()) {
-        // Si hay errores, vuelve a cargar los datos para el formulario y renderiza con los errores
-        const [personals, clientes, procedimientos, articulos] = await Promise.all([
+        const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
             Personal.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] }),
             Cliente.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] }),
             Procedimiento.findAll({ include: [{ model: Precio, as: 'precio' }] }),
-            Articulo.findAll({ where: { activo: true, categoriaId: 1, stock_actual: { [Op.gt]: 0 } }, order: [['nombre_articulo', 'ASC']] })
+            Articulo.findAll({ where: { activo: true, categoriaId: 1, stock_actual: { [Op.gt]: 0 } }, order: [['nombre_articulo', 'ASC']] }),
+            FormaDePago.findAll(),
+            Banco.findAll()
         ]);
 
         return res.render('actividades/crear', {
             pagina: 'Crear Actividad',
             csrfToken: req.csrfToken(),
-            personals, clientes, procedimientos, articulos,
+            personals, clientes, procedimientos, articulos, formasDePago, bancos,
             errores: resultado.array(),
             datos: req.body
         });
@@ -181,9 +188,7 @@ const guardar = async (req, res) => {
     let { soloVales, articuloId, cantidad } = req.body;
     const erroresDeStock = [];
 
-    // Solo validamos el stock si NO es un registro de "solo vales"
     if (soloVales !== 'on') {
-        // Normalizar datos para asegurar que sean arrays
         if (articuloId && !Array.isArray(articuloId)) {
             articuloId = [articuloId];
             cantidad = [cantidad];
@@ -207,19 +212,20 @@ const guardar = async (req, res) => {
 
     // --- 3. SI HAY ERRORES DE STOCK, DETENER Y MOSTRAR MENSAJES ---
     if (erroresDeStock.length > 0) {
-        // Este bloque es casi idéntico al de arriba, para mantener la consistencia
-        const [personals, clientes, procedimientos, articulos] = await Promise.all([
+        const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
             Personal.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] }),
             Cliente.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] }),
             Procedimiento.findAll({ include: [{ model: Precio, as: 'precio' }] }),
-            Articulo.findAll({ where: { activo: true, categoriaId: 1, stock_actual: { [Op.gt]: 0 } }, order: [['nombre_articulo', 'ASC']] })
+            Articulo.findAll({ where: { activo: true, categoriaId: 1, stock_actual: { [Op.gt]: 0 } }, order: [['nombre_articulo', 'ASC']] }),
+            FormaDePago.findAll(),
+            Banco.findAll()
         ]);
 
         return res.render('actividades/crear', {
             pagina: 'Crear Actividad',
             csrfToken: req.csrfToken(),
-            personals, clientes, procedimientos, articulos,
-            errores: erroresDeStock, // Le pasamos nuestros errores de stock a la vista
+            personals, clientes, procedimientos, articulos, formasDePago, bancos,
+            errores: erroresDeStock,
             datos: req.body
         });
     }
@@ -227,7 +233,8 @@ const guardar = async (req, res) => {
     // --- 4. SI TODAS LAS VALIDACIONES PASAN, PROCEDER A GUARDAR CON UNA TRANSACCIÓN ---
     const t = await db.transaction();
     try {
-        const { personal, cliente, procedimiento, precio, vales, descripcion } = req.body;
+        // --- CORRECCIÓN: Extraer todos los campos, incluyendo 'referencia_pago' ---
+        const { personal, cliente, procedimiento, precio, vales, descripcion, formaDePagoId, bancoId, referencia_pago } = req.body;
         const { id: usuarioId } = req.usuario;
 
         // Caso A: Guardar solo un Vale
@@ -246,10 +253,14 @@ const guardar = async (req, res) => {
                 clienteId: cliente,
                 procedimientoId: procedimiento,
                 precioId: precio,
-                usuarioId
+                usuarioId,
+                // --- CORRECCIÓN: Guardar los nuevos campos de pago ---
+                formaDePagoId: formaDePagoId || null,
+                bancoId: bancoId || null,
+                referencia_pago: referencia_pago || null
             }, { transaction: t });
 
-            // Bucle para guardar detalles y actualizar stock (ya no necesita validar)
+            // Bucle para guardar detalles y actualizar stock (sin cambios)
             if (articuloId && Array.isArray(articuloId)) {
                 for (let i = 0; i < articuloId.length; i++) {
                     const idDelArticulo = articuloId[i];
@@ -271,7 +282,7 @@ const guardar = async (req, res) => {
         }
 
         await t.commit();
-        return res.redirect('/mis-actividades?guardado=1');
+        return res.redirect('/mis-actividades?mensaje=Actividad Guardada Correctamente');
 
     } catch (error) {
         await t.rollback();
@@ -280,58 +291,64 @@ const guardar = async (req, res) => {
     }
 };
 
-const eliminarActividad = async (req, res) => {
-  const { id } = req.params;
+// --- FUNCIÓN ACTUALIZADA: DE ELIMINAR A ANULAR ---
+const anularActividad = async (req, res) => {
+    const { id } = req.params;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
-  // 1. Verificar permisos
-  if (req.usuario.role.nombre !== 'Admin') {
-    return res.status(403).send('No tienes permiso para realizar esta acción');
-  }
-
-  // 2. Iniciar una transacción
-  const t = await db.transaction();
-
-  try {
-    // 3. Buscar la actividad y sus detalles asociados dentro de la transacción
-    const actividad = await Actividad.findByPk(id, {
-      include: [{
-        model: DetalleActividad,
-        as: 'detalle_actividads'
-      }],
-      transaction: t
-    });
-
-    // Si la actividad no existe, cancelar todo
-    if (!actividad) {
-      await t.rollback();
-      return res.status(404).send('Actividad no encontrada');
+    // Verificar permisos
+    if (req.usuario.role.nombre !== 'Admin' && req.usuario.role.nombre !== 'Supervisor') {
+        return res.status(403).send('No tienes permiso para realizar esta acción');
     }
 
-    // 4. Devolver los artículos al stock si la actividad los tiene
-    if (actividad.detalle_actividads && actividad.detalle_actividads.length > 0) {
-      for (const detalle of actividad.detalle_actividads) {
-        const articulo = await Articulo.findByPk(detalle.articuloId, { transaction: t });
-        if (articulo) {
-          articulo.stock_actual = parseFloat(articulo.stock_actual) + parseFloat(detalle.cantidad);
-          await articulo.save({ transaction: t });
+    const t = await db.transaction();
+    try {
+        const actividad = await Actividad.findByPk(id, {
+            include: [{
+                model: DetalleActividad,
+                as: 'detalle_actividads',
+                include: [Articulo]
+            }],
+            transaction: t
+        });
+
+        if (!actividad) {
+            throw new Error('Actividad no encontrada.');
         }
-      }
+
+        if (actividad.estado === 'Anulada') {
+            throw new Error('Esta actividad ya ha sido anulada previamente.');
+        }
+
+        // 1. Revertir el stock de los materiales utilizados
+        for (const detalle of actividad.detalle_actividads) {
+            if (detalle.Articulo) {
+                detalle.Articulo.stock_actual = parseFloat(detalle.Articulo.stock_actual) + parseFloat(detalle.cantidad);
+                await detalle.Articulo.save({ transaction: t });
+            }
+        }
+
+        // 2. Cambiar el estado de la actividad a "Anulada"
+        actividad.estado = 'Anulada';
+        await actividad.save({ transaction: t });
+
+        // 3. Registrar la acción en la tabla de auditoría
+        await Auditoria.create({
+            accion: 'ANULAR',
+            tabla_afectada: 'actividades',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} anuló la actividad #${id}.`,
+            usuarioId: usuarioId
+        }, { transaction: t });
+
+        await t.commit();
+        res.redirect('/mis-actividades?mensaje=Actividad anulada y stock revertido correctamente.');
+
+    } catch (error) {
+        await t.rollback();
+        console.error('Error al anular la actividad:', error);
+        res.redirect(`/mis-actividades?error=${encodeURIComponent(error.message)}`);
     }
-
-    // 5. Eliminar la actividad principal
-    await actividad.destroy({ transaction: t });
-
-    // 6. Si todo fue exitoso, confirmar la transacción
-    await t.commit();
-
-    return res.redirect('/mis-actividades?eliminado=1');
-
-  } catch (error) {
-    // 7. Si algo falla, deshacer la transacción y registrar el error
-    console.error(error);
-    await t.rollback();
-    return res.status(500).send('Error al eliminar la actividad y actualizar el stock');
-  }
 };
 
 const eliminarVale = async (req, res) => {
@@ -362,6 +379,6 @@ export {
   admin,
   crear,
   guardar,
-  eliminarActividad,
+  anularActividad,
   eliminarVale
 }
