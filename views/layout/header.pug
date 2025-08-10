@@ -1,66 +1,23 @@
-header(class="bg-fuchsia-500 shadow-lg sticky top-0 z-50")
+header(class="bg-fuchsia-500 shadow-lg z-40")
     div(class="container mx-auto px-4")
-        div(class="flex justify-between items-center py-4")
-            //- Logo
-            a(href="/dashboard" class="text-white text-4xl font-light tracking-wide font-serif")
-                span(class="font-extrabold text-white") Damaris 
-                span(class="ml-2 italic") Spa
-            
-            //- Contenedor para botones de la derecha (Logout y Hamburguesa)
+        div(class="flex justify-between items-center py-6")
+            //- Contenedor Izquierdo: Hamburguesa y Logo
             div(class="flex items-center gap-4")
-
-                if usuario && usuario.role && usuario.role.nombre === 'Admin'
-                    a(href="/auditoria" title="Historial de Auditoría" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full transition-colors")
-                        i(class="fas fa-history")
-                        
-                if usuario && usuario.role && usuario.role.nombre === 'Admin'
-                    a(href="/inventario/ropa" title="Inventario de Ropa" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full transition-colors")
-                        i(class="fas fa-tshirt")
-                //- Botón de Logout (visible en todas las pantallas)
-                form(method="POST", action="/auth/logout")
-                    input(type="hidden" name="_csrf" value=csrfToken)
-                    button(type="submit" title="Cerrar Sesión" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full transition-colors")
-                        i(class="fas fa-sign-out-alt")
-
-                //- Botón de Hamburguesa (solo visible en pantallas pequeñas)
+                //- --- CORRECCIÓN: Se añade 'md:hidden' para ocultar en escritorio ---
                 button#hamburger-button(type="button" class="md:hidden text-white hover:text-fuchsia-200 focus:outline-none")
                     i(class="fas fa-bars text-2xl")
+                a(href="/dashboard" class="hidden sm:block text-white text-3xl font-light")
+                    span(class="font-extrabold") Damaris 
+                    span(class="italic") Spa
 
-    //- Barra de navegación principal
-    nav#mobile-menu(class="bg-fuchsia-600 hidden md:block")
-        div(class="container mx-auto px-4")
-            //- En pantallas pequeñas (móviles) los enlaces ocuparán todo el ancho
-            //- En pantallas medianas (md) y grandes, se mostrarán en línea
-            div(class="flex flex-col md:flex-row md:justify-center md:items-center md:gap-2")
-                a(href="/mis-actividades" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                    i(class="fas fa-home w-5 text-center")
-                    span(class="font-bold") Actividad
-                
-                a(href="/cierre-caja" class="md:mx-2 flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                    i(class="fas fa-cash-register w-5 text-center")
-                    span(class="font-bold") Cierre de Caja
-                
-                if usuario && usuario.role && usuario.role.nombre === 'Admin'
-                    a(href="/admin/usuarios" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                        i(class="fas fa-users-cog w-5 text-center") 
-                        span(class="font-bold") Usuarios
-                
-                a(href="/personal/leer" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                    i(class="fas fa-user w-5 text-center")
-                    span(class="font-bold") Personal
-                
-                a(href="/cliente/leer" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                    i(class="fas fa-users w-5 text-center")
-                    span(class="font-bold") Cliente
-                
-                a(href="/proveedor/leer" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                    i(class="fas fa-handshake w-5 text-center")
-                    span(class="font-bold") Proveedores
-                
-                a(href="/gastos" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors border-b-2 border-fuchsia-500 md:border-none")
-                    i(class="fas fa-file-invoice w-5 text-center")
-                    span(class="font-bold") Gastos
-                            
-                a(href="/articulos/leer" class="flex items-center gap-3 py-3 px-4 text-white hover:bg-fuchsia-700 transition-colors")
-                    i(class="fas fa-box-open w-5 text-center")
-                    span(class="font-bold") Artículos
+            //- Contenedor para botones de la derecha
+            div(class="flex items-center gap-4")
+                if usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
+                    a(href="/auditoria" title="Historial de Auditoría" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full")
+                        i(class="fas fa-history")
+                    a(href="/inventario/ropa" title="Inventario de Ropa" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full")
+                        i(class="fas fa-tshirt")
+                form(method="POST", action="/auth/logout")
+                    input(type="hidden" name="_csrf" value=csrfToken)
+                    button(type="submit" title="Cerrar Sesión" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full")
+                        i(class="fas fa-sign-out-alt")

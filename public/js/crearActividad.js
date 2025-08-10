@@ -1,5 +1,3 @@
-// public/js/crearActividad.js
-
 document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // REFERENCIAS A ELEMENTOS DEL DOM
@@ -19,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formaDePagoSelect = document.getElementById('formaDePagoId');
     const bancoSelect = document.getElementById('bancoId');
     const campoReferencia = document.getElementById('campo-referencia');
+    const seccionPagos = document.getElementById('seccionPagos');
 
     // =========================================================================
     // DECLARACIÓN DE FUNCIONES
@@ -67,6 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ocultar/mostrar sección de Materiales
             if (seccionMateriales) {
                 seccionMateriales.style.display = isChecked ? 'none' : 'block';
+            }
+
+            if (seccionPagos) {
+                seccionPagos.style.display = isChecked ? 'none' : 'block';
             }
 
             // Si está marcado (solo vales), limpiar campos de actividad y poner foco

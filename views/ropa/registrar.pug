@@ -13,7 +13,6 @@ block contenido
                     i(class="fas fa-arrow-left")
                     span(class="font-bold") Regresar al Inventario
 
-            //- Muestra de errores de validación
             if errores
                 div(class="mb-6")
                     each error in errores
@@ -26,54 +25,55 @@ block contenido
                 fieldset(class="border border-gray-300 p-4 rounded-md")
                     legend(class="px-2 text-lg font-semibold text-gray-700") Información del Artículo
                     
-                    //- Grid responsivo: 1 columna en móvil, 2 en escritorio
                     div(class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4")
                         //- Nombre del Artículo
                         div
                             label(for="nombre" class="block text-sm font-medium text-gray-700") Nombre del Artículo
-                            input#nombre(type="text" name="nombre" value=datos.nombre || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                            input#nombre(type="text" name="nombre" value=datos.nombre || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
 
                         //- Marca
                         div
                             label(for="marca" class="block text-sm font-medium text-gray-700") Marca
-                            input#marca(type="text" name="marca" value=datos.marca || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                            input#marca(type="text" name="marca" value=datos.marca || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
                         
-                        //- Color
+                        //- Color y Talla
                         div
                             label(for="color" class="block text-sm font-medium text-gray-700") Color
-                            input#color(type="text" name="color" value=datos.color || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
-
-                        //- Talla
+                            input#color(type="text" name="color" value=datos.color || '' class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
                         div
                             label(for="talla" class="block text-sm font-medium text-gray-700") Talla
-                            input#talla(type="text" name="talla" value=datos.talla || '' placeholder="Ej: S, M, L ó 38" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                            input#talla(type="text" name="talla" value=datos.talla || '' placeholder="Ej: S, M, L ó 38" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
 
                         //- Stock Actual
                         div
                             label(for="stock_actual" class="block text-sm font-medium text-gray-700") Stock Inicial
-                            input#stock_actual(type="number" name="stock_actual" value=datos.stock_actual || 0 min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                            input#stock_actual(type="number" name="stock_actual" value=datos.stock_actual || 0 min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
 
-                        //- Precio de Compra (NUEVO)
+                        //- --- ¡CAMPO ACTUALIZADO! Precio de Compra ---
                         div
-                            label(for="precio_compra" class="block text-sm font-medium text-gray-700") Precio de Compra
-                            input#precio_compra(type="number" name="precio_compra" value=datos.precio_compra || '' min="0" step="0.01" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                            label(for="precio_compra_display" class="block text-sm font-medium text-gray-700") Precio de Compra
+                            input#precio_compra_display(type="text" placeholder="0" oninput="formatNumberInput(event)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-right")
+                            input#precio_compra(type="hidden" name="precio_compra" value=datos.precio_compra || '')
 
-                        //- Precio de Venta
+                        //- --- ¡CAMPO ACTUALIZADO! Precio de Venta ---
                         div(class="md:col-span-2")
-                            label(for="precio_venta" class="block text-sm font-medium text-gray-700") Precio de Venta
-                            input#precio_venta(type="number" name="precio_venta" value=datos.precio_venta || '' min="0" step="0.01" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                            label(for="precio_venta_display" class="block text-sm font-medium text-gray-700") Precio de Venta
+                            input#precio_venta_display(type="text" placeholder="0" oninput="formatNumberInput(event)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-right")
+                            input#precio_venta(type="hidden" name="precio_venta" value=datos.precio_venta || '')
                         
-                        //- Descripción (ocupa todo el ancho)
+                        //- Descripción y Observación
                         div(class="md:col-span-2")
                             label(for="descripcion" class="block text-sm font-medium text-gray-700") Descripción
-                            textarea#descripcion(name="descripcion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")= datos.descripcion || ''
-
-                        //- Observación (ocupa todo el ancho)
+                            textarea#descripcion(name="descripcion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")= datos.descripcion || ''
                         div(class="md:col-span-2")
                             label(for="observacion" class="block text-sm font-medium text-gray-700") Observación
-                            textarea#observacion(name="observacion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-fuchsia-500 focus:border-fuchsia-500")= datos.observacion || ''
+                            textarea#observacion(name="observacion" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")= datos.observacion || ''
 
                 //- Botón de Guardar
-                div(class="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4")
-                    a(href="/inventario/ropa" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md transition-colors") Cancelar
-                    input(type="submit", value="Guardar Artículo", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer transition-all")
+                div(class="mt-8 pt-6 border-t flex justify-end gap-4")
+                    a(href="/inventario/ropa" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md") Cancelar
+                    input(type="submit", value="Guardar Artículo", class="bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-md cursor-pointer")
+
+block scripts
+    //- --- ¡NUEVO SCRIPT! ---
+    script(src="/js/formRopa.js")

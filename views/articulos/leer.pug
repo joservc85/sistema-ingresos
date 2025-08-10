@@ -10,6 +10,29 @@ block contenido
             span(class="font-normal") Gastos
         h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
 
+        form(method="GET" action="/articulos/leer" class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm mb-8")
+            div(class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end")
+                //- Buscador por Nombre
+                div(class="md:col-span-1")
+                    label(for="busqueda" class="block text-sm font-medium text-gray-700 mb-1") Buscar por Nombre
+                    input(type="text" name="busqueda" id="busqueda" placeholder="Escribe aquí..." value=query.busqueda || '' class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                
+                //- Filtro por Categoría
+                div(class="md:col-span-1")
+                    label(for="categoriaId" class="block text-sm font-medium text-gray-700 mb-1") Filtrar por Categoría
+                    select(name="categoriaId" id="categoriaId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                        option(value="") -- Todas --
+                        each categoria in categorias
+                            option(value=categoria.id selected=(query.categoriaId == categoria.id))= categoria.nombre_categoria
+
+                //- Botones de Acción
+                div(class="flex items-center gap-2 w-full md:w-auto")
+                    button(type="submit" class="w-full md:w-auto flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg transition")
+                        i(class="fas fa-search")
+                        span Filtrar
+                    a(href="/articulos/leer" class="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+                        i(class="fas fa-undo")
+                        span Limpiar
        
         // Mensaje para cuando no hay artículos registrados
         if !articulos || !articulos.length

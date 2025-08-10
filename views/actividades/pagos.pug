@@ -1,12 +1,14 @@
+//- Reemplaza el contenido de tu archivo /views/actividades/pagos.pug
+
 extends ../layout/index
 
 block contenido
     div(class="py-10")
         h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
             | Reporte 
-            span(class="font-normal") de Pagos Diarios
+            span(class="font-normal") de Pagos
 
-        //- Filtros
+        //- Formulario de Filtros Unificado y Responsivo
         form(method="GET" action="/actividades/pagos" class="mb-8 bg-white p-6 rounded-lg shadow-md")
             input(type="hidden" name="_csrf" value=csrfToken)
 
@@ -40,16 +42,16 @@ block contenido
                             )= item.texto
             
             //- Botones de Acción
-            div(class="mt-6 pt-4 border-t flex flex-wrap gap-4 items-center")
-                button(type="submit" class="bg-fuchsia-600 text-white px-4 py-2 rounded-md font-bold hover:bg-fuchsia-700 transition") Buscar
-                a(href="/actividades/pagos" class="flex items-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
+            div(class="mt-6 pt-4 border-t flex flex-col sm:flex-row gap-4 items-center")
+                button(type="submit" class="w-full sm:w-auto bg-fuchsia-600 text-white px-4 py-2 rounded-md font-bold hover:bg-fuchsia-700 transition") Buscar
+                a(href="/actividades/pagos" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
                     i(class="fas fa-undo")
                     span Limpiar
-                a(href=`/actividades/pagos/exportar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&personalId=${personalSeleccionado}` class="ml-0 md:ml-auto bg-green-600 text-white px-4 py-2 rounded-md font-bold hover:bg-green-700 transition") 
+                a(href=`/actividades/pagos/exportar?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&personalId=${personalSeleccionado}` class="w-full sm:w-auto ml-0 sm:ml-auto bg-green-600 text-white px-4 py-2 rounded-md font-bold hover:bg-green-700 transition") 
                     i(class="fas fa-file-excel mr-2")
                     | Exportar a Excel
 
-        //- AQUÍ COMIENZA LA NUEVA ESTRUCTURA DEL REPORTE
+        //- Contenedor de las Fichas de Pago
         div(class="space-y-8 mt-8")
             if !resumenPagos || resumenPagos.length === 0
                 div(class="bg-white p-10 rounded-lg shadow text-center")
@@ -65,20 +67,25 @@ block contenido
                         div(class="p-4 md:p-6")
                             h4(class="text-gray-600 font-bold text-lg mb-3") (+) Ganancias por Actividades
                             if persona.actividades.length > 0
-                                div(class="overflow-x-auto")
-                                    table(class="w-full text-sm text-left")
-                                        thead(class="bg-slate-100 text-slate-600 uppercase")
-                                            tr
-                                                th(class="px-4 py-2") Fecha
-                                                th(class="px-4 py-2") Procedimiento
-                                                th(class="px-4 py-2 text-right") Ganancia
-                                        tbody
-                                            each act in persona.actividades
-                                                tr.border-b
-                                                    td(class="px-4 py-2")= new Date(act.createdAt).toLocaleDateString('es-VE')
-                                                    td(class="px-4 py-2")= act.procedimiento.nombre
-                                                    td(class="px-4 py-2 text-right text-green-600 font-medium") $#{parseFloat(act.gananciaPersonal).toLocaleString('es-CO')}
-                                    tfoot
+                                table(class="w-full text-sm")
+                                    thead(class="hidden md:table-header-group bg-slate-100 text-slate-600 uppercase")
+                                        tr
+                                            th(class="px-4 py-2 text-left") Fecha
+                                            th(class="px-4 py-2 text-left") Procedimiento
+                                            th(class="px-4 py-2 text-right") Ganancia
+                                    tbody
+                                        each act in persona.actividades
+                                            tr(class="block md:table-row mb-2 md:mb-0 border md:border-none rounded-lg")
+                                                td(class="block md:table-cell p-2 text-right md:text-left border-b md:border-b-0")
+                                                    span(class="md:hidden float-left font-bold") Fecha:
+                                                    | #{new Date(act.createdAt).toLocaleDateString('es-VE')}
+                                                td(class="block md:table-cell p-2 text-right md:text-left border-b md:border-b-0")
+                                                    span(class="md:hidden float-left font-bold") Procedimiento:
+                                                    | #{act.procedimiento.nombre}
+                                                td(class="block md:table-cell p-2 text-right text-green-600 font-medium")
+                                                    span(class="md:hidden float-left font-bold text-gray-800") Ganancia:
+                                                    | $#{parseFloat(act.gananciaPersonal).toLocaleString('es-CO')}
+                                    tfoot(class="hidden md:table-footer-group")
                                         tr(class="bg-slate-100 font-semibold")
                                             td(colspan="2" class="text-right px-4 py-2") Subtotal Ganancias 
                                             td(class="text-right px-4 py-2 text-green-700") $#{parseFloat(persona.totalGanancias).toLocaleString('es-CO')}
@@ -89,20 +96,25 @@ block contenido
                         div(class="p-4 md:p-6 border-t")
                             h4(class="text-gray-600 font-bold text-lg mb-3") (-) Deducciones por Vales
                             if persona.vales.length > 0
-                                div(class="overflow-x-auto")
-                                    table(class="w-full text-sm text-left")
-                                        thead(class="bg-slate-100 text-slate-600 uppercase")
-                                            tr
-                                                th(class="px-4 py-2") Fecha
-                                                th(class="px-4 py-2") Descripción
-                                                th(class="px-4 py-2 text-right") Monto
-                                        tbody
-                                            each vale in persona.vales
-                                                tr.border-b
-                                                    td(class="px-4 py-2")= new Date(vale.createdAt).toLocaleDateString('es-VE')
-                                                    td(class="px-4 py-2")= vale.descripcion
-                                                    td(class="px-4 py-2 text-right text-red-600 font-medium") -$#{parseFloat(vale.vales).toLocaleString('es-CO')}
-                                    tfoot
+                                table(class="w-full text-sm")
+                                    thead(class="hidden md:table-header-group bg-slate-100 text-slate-600 uppercase")
+                                        tr
+                                            th(class="px-4 py-2 text-left") Fecha
+                                            th(class="px-4 py-2 text-left") Descripción
+                                            th(class="px-4 py-2 text-right") Monto
+                                    tbody
+                                        each vale in persona.vales
+                                            tr(class="block md:table-row mb-2 md:mb-0 border md:border-none rounded-lg")
+                                                td(class="block md:table-cell p-2 text-right md:text-left border-b md:border-b-0")
+                                                    span(class="md:hidden float-left font-bold") Fecha:
+                                                    | #{new Date(vale.createdAt).toLocaleDateString('es-VE')}
+                                                td(class="block md:table-cell p-2 text-right md:text-left border-b md:border-b-0")
+                                                    span(class="md:hidden float-left font-bold") Descripción:
+                                                    | #{vale.descripcion}
+                                                td(class="block md:table-cell p-2 text-right text-red-600 font-medium")
+                                                    span(class="md:hidden float-left font-bold text-gray-800") Monto:
+                                                    | -$#{parseFloat(vale.vales).toLocaleString('es-CO')}
+                                    tfoot(class="hidden md:table-footer-group")
                                         tr(class="bg-slate-100 font-semibold")
                                             td(colspan="2" class="text-right px-4 py-2") Subtotal Vales
                                             td(class="text-right px-4 py-2 text-red-700") -$#{parseFloat(persona.totalVales).toLocaleString('es-CO')}
@@ -110,8 +122,8 @@ block contenido
                                 p(class="text-sm text-gray-500 italic px-4") Sin vales en este período.
 
                         //- Total a Pagar
-                        div(class="bg-gray-800 text-white p-4 flex justify-end items-center gap-4")
-                            h4(class="text-lg font-bold") Pago Neto a Realizar:
+                        div(class="bg-gray-800 text-white p-4 flex justify-between md:justify-end items-center gap-4")
+                            h4(class="text-lg font-bold") Pago Neto:
                             span(class="text-2xl font-extrabold text-fuchsia-400") $#{parseFloat(persona.pagoNeto).toLocaleString('es-CO')}
         
         //- Resumen Total General

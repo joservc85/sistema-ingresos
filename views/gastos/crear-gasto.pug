@@ -1,3 +1,5 @@
+//- Reemplaza el contenido de tu archivo /views/gastos/crear-gasto.pug
+
 extends ../layout/index
 
 block contenido
@@ -8,24 +10,19 @@ block contenido
         h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
 
         div(class="mx-auto max-w-4xl")
-            //- Botón de regresar, ahora dentro del contenedor
             div(class="flex justify-start mb-4")
                 a(href="/gastos" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
                     i(class="fas fa-arrow-left")
                     span(class="font-bold") Regresar
-        
+            
             div(class="bg-white shadow-lg rounded-lg mx-auto max-w-4xl p-6 md:p-8")
 
-                //- Muestra de errores de validación del backend
                 if errores
                     div(class="mb-6")
                         each error in errores
                             div(class="flex items-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2" role="alert")
-                                svg(class="w-6 h-6 text-red-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor")
-                                    path(stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z")
                                 p(class="font-bold")= error.msg
 
-                //- El formulario apunta a la ruta de creación
                 form(method="POST" action="/gastos/crear")
                     input(type="hidden" name="_csrf" value=csrfToken)
 
@@ -33,36 +30,27 @@ block contenido
                     fieldset(class="border border-gray-300 p-4 rounded-md")
                         legend(class="px-2 text-lg font-semibold text-gray-700") Datos Generales
                         div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
-                            //- Proveedor
                             div
                                 label(for="proveedorId" class="block text-sm font-medium text-gray-700") Proveedor
-                                select#proveedorId(name="proveedorId" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-fuchsia-500 focus:border-fuchsia-500 sm:text-sm")
+                                select#proveedorId(name="proveedorId" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm")
                                     option(value="") -- Seleccione un Proveedor --
                                     each proveedor in proveedores
                                         option(value=proveedor.id) #{proveedor.razon_social}
-                            
-                            //- Fecha del Gasto
                             div
                                 label(for="fecha_gasto" class="block text-sm font-medium text-gray-700") Fecha del Gasto
-                                input#fecha_gasto(type="date" name="fecha_gasto" value=new Date().toISOString().slice(0,10) class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-fuchsia-500 focus:border-fuchsia-500 sm:text-sm")
-
-                            //- Número de Factura
+                                input#fecha_gasto(type="date" name="fecha_gasto" value=new Date().toISOString().slice(0,10) class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm")
                             div(class="md:col-span-1")
                                 label(for="numero_factura" class="block text-sm font-medium text-gray-700") Número Factura/Recibo
-                                input#numero_factura(type="text" name="numero_factura" placeholder="Ej: F-001-12345" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-fuchsia-500 focus:border-fuchsia-500 sm:text-sm")
-
-                            //- Descripción
+                                input#numero_factura(type="text" name="numero_factura" placeholder="Ej: F-001-12345" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm")
                             div(class="md:col-span-2")
                                 label(for="descripcion" class="block text-sm font-medium text-gray-700") Descripción General (Opcional)
-                                textarea#descripcion(name="descripcion" rows="2" placeholder="Ej: Compra de insumos para manicura" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-fuchsia-500 focus:border-fuchsia-500 sm:text-sm")
+                                textarea#descripcion(name="descripcion" rows="2" placeholder="Ej: Compra de insumos para manicura" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm")
 
-                    //- SECCIÓN DE DETALLE DEL GASTO (DINÁMICA)
+                    //- SECCIÓN DE DETALLE DEL GASTO
                     fieldset(class="mt-6 border border-gray-300 p-4 rounded-md")
                         legend(class="px-2 text-lg font-semibold text-gray-700") Detalle del Gasto
-                        
                         div(id="detalle-gastos-container" class="space-y-4")
-                        
-                        button(type="button" id="agregar-detalle" class="mt-4 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors cursor-pointer")
+                        button(type="button" id="agregar-detalle" class="mt-4 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md")
                             i(class="fas fa-plus")
                             span Añadir Artículo
 
@@ -72,56 +60,35 @@ block contenido
                             div(class="text-right")
                                 p(class="text-gray-500") Total General del Gasto:
                                 p(id="total-general" class="text-3xl font-extrabold text-gray-800") $0
-                            
-                            button(type="submit" class="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors text-lg cursor-pointer") Guardar Gasto
+                            button(type="submit" class="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 px-8 rounded-lg shadow-md text-lg cursor-pointer") Guardar Gasto
 
-        //- PLANTILLA PARA UNA FILA DE DETALLE (Oculta, para ser clonada con JS)
-        div(id="plantilla-detalle" class="hidden")
-            div(class="detalle-item grid grid-cols-12 gap-x-3 items-center p-2 border rounded-md bg-gray-50")
-                //- Artículo (Buscador)
-                div(class="col-span-12 md:col-span-5")
-                    label(class="text-xs text-gray-600") Artículo / Concepto
-                    input(type="text" name="articulo_nombre" placeholder="Buscar artículo..." class="w-full text-sm border-gray-300 rounded-md")
-                    input(type="hidden" name="articuloId[]")
-                
-                //- Cantidad (con corchetes para que sea un array)
-                div(class="col-span-4 md:col-span-2")
-                    label(class="text-xs text-gray-600") Cantidad
-                    input(type="number" name="cantidad[]" value="1.0" min="0.01" step="0.01" class="w-full text-sm border-gray-300 rounded-md px-2")
-                
-                
-                - let valorInicial = (typeof item !== 'undefined' && item.precio_unitario) ? item.precio_unitario : ''
-                - let valorFormateado = formatearMoneda(valorInicial)
-                div(class="col-span-4 md:col-span-2")
-                    label(class="text-xs text-gray-600") Precio Unit.
-                    
-                    //- Input VISIBLE
-                    input(
-                        type="text",
-                        placeholder="0.00",
-                        class="w-full text-sm border-gray-300 rounded-md px-2 text-right precio-visible",
-                        oninput="actualizarValor(event)",
-                        value=valorFormateado
-                    )
-
-                    //- Input OCULTO
-                    input(
-                        type="hidden",
-                        name="precio_unitario[]",
-                        class="precio-oculto",
-                        value=valorInicial
-                    )
-
-                //- Subtotal
-                
-                div(class="col-span-4 md:col-span-2 text-center md:text-right")
-                    label(class="text-xs text-gray-600") Subtotal
-                    p(class="detalle-subtotal font-bold text-gray-800 mt-2") $0
-                
-                //- Botón Eliminar
-                div(class="col-span-12 md:col-span-1 flex justify-end md:justify-center items-center")
-                    button(type="button" class="eliminar-detalle text-red-500 hover:text-red-700 p-2 cursor-pointer")
-                        i(class="fas fa-trash-alt fa-lg")
+    //- PLANTILLA PARA UNA FILA DE DETALLE (Oculta)
+    template#plantilla-detalle
+        div(class="detalle-item grid grid-cols-12 gap-x-3 items-end p-2 border rounded-md bg-gray-50")
+            div(class="col-span-12 md:col-span-4")
+                label(class="text-xs text-gray-600") Artículo / Concepto
+                select(name="articuloId[]" class="articulo-buscador w-full text-sm")
+            div(class="col-span-4 md:col-span-2")
+                label(class="text-xs text-gray-600") Cantidad
+                input(type="number" name="cantidad[]" value="1" min="0.01" step="0.01" class="w-full text-sm border-gray-300 rounded-md")
+            div(class="col-span-4 md:col-span-2")
+                label(class="text-xs text-gray-600") Precio Unit.
+                input(type="text" placeholder="0" class="w-full text-sm border-gray-300 rounded-md px-2 text-right precio-visible")
+                input(type="hidden" name="precio_unitario[]" class="precio-oculto" value="0")
+            div(class="col-span-4 md:col-span-3 text-center md:text-right")
+                label(class="text-xs text-gray-600") Subtotal
+                p(class="detalle-subtotal font-bold text-gray-800") $0
+            div(class="col-span-12 md:col-span-1 flex justify-end md:justify-center items-end pb-1")
+                button(type="button" class="eliminar-detalle text-red-500 hover:text-red-700 p-2")
+                    i(class="fas fa-trash-alt")
 
 block scripts
+    //- --- ¡NUEVO! Estilos para corregir el bug visual de TomSelect ---
+    style.
+        .ts-wrapper.single .ts-control, .ts-wrapper.single .ts-control input {
+        cursor: text;
+        }
+        .ts-wrapper .ts-control > div {
+            color: #1f2937; /* text-gray-800 */
+        }
     script(src="/js/formGasto.js")

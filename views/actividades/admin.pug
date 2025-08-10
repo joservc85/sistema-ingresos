@@ -4,138 +4,83 @@ extends ../layout/index
 
 block contenido
     div(class="py-10")
-        //- Títulos con el estilo unificado
+        //- Títulos
         h1(class="text-4xl my-10 font-extrabold text-center text-gray-800")
             | Sistema 
             span(class="font-normal") Ingresos
         h2(class="text-center text-2xl font-bold text-fuchsia-600")= pagina
 
-        //- Contenedor principal con padding
+        //- Contenedor principal
         div(class="mt-8 mx-auto max-w-7xl px-4")
 
-            //- =================================================================
-            //-                INICIO DE LA SECCIÓN REESTRUCTURADA
-            //- =================================================================
+            //- Barra de Acciones y Filtros
+            div(class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8")
+                //- Botones de Acción
+                div(class="flex flex-wrap gap-2")
+                    a(href="/actividades/crear" class="flex-grow md:flex-grow-0 flex items-center justify-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold py-2 px-4 rounded-lg")
+                        i(class="fas fa-plus")
+                        span Asignar Actividad
+                    if usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
+                        a(href="/actividades/pagos" class="flex-grow md:flex-grow-0 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg")
+                            i(class="fas fa-chart-line")
+                            span Reporte de Pagos
+                        a(href="/cierre-caja/historial" class="flex-grow md:flex-grow-0 flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg")
+                            i(class="fas fa-archive")
+                            span Historial de Cierres
+            
+            //- Panel de Búsqueda y Filtros
+            div(class="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm")
+                form(method="GET", action="/mis-actividades")
+                    div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4")
+                        //- Filtros Desplegables
+                        div
+                            label(for="personalId" class="block text-sm font-medium text-gray-700 mb-1") Personal
+                            select(name="personalId" id="personalId" class="w-full px-3 py-2 border border-gray-300 rounded-lg")
+                                option(value="") Todos
+                                each persona in personales
+                                    option(value=persona.id selected=(query.personalId == persona.id))= `${persona.nombre} ${persona.apellidos}`
+                        div
+                            label(for="clienteId" class="block text-sm font-medium text-gray-700 mb-1") Cliente
+                            select(name="clienteId" id="clienteId" class="w-full px-3 py-2 border border-gray-300 rounded-lg")
+                                option(value="") Todos
+                                each cliente in clientes
+                                    option(value=cliente.id selected=(query.clienteId == cliente.id))= `${cliente.nombre} ${cliente.apellidos}`
+                        div
+                            label(for="procedimientoId" class="block text-sm font-medium text-gray-700 mb-1") Procedimiento
+                            select(name="procedimientoId" id="procedimientoId" class="w-full px-3 py-2 border border-gray-300 rounded-lg")
+                                option(value="") Todos
+                                each procedimiento in procedimientos
+                                    option(value=procedimiento.id selected=(query.procedimientoId == procedimiento.id))= procedimiento.nombre
+                        
+                        //- Búsqueda por Nombre
+                        div
+                            label(for="buscar" class="block text-sm font-medium text-gray-700 mb-1") Buscar por nombre
+                            input(type="text" name="buscar" id="buscar" placeholder="Cliente, Personal..." value=(query.buscar || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg")
 
-            //- 1. Barra de Acciones Principal (Botones a la Izquierda)
-            //- Esta barra ahora solo contiene los botones de acción principales.
-            div(class="flex justify-start items-center gap-x-3 mb-6")
-                //- Botón "Asignar Actividad"
-                a(href="/actividades/crear" class="flex items-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all")
-                    i(class="fas fa-plus")
-                    span Asignar Actividad
-                
-                //- Botón para Administrar Procedimientos
-                a(href="/procedimientos/leer" class="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all")
-                    i(class="fas fa-cogs")
-                    span Administrar Procedimientos
-                
-                //- Botón para Reporte de Actividades Diarias
-                if usuario && usuario.role && usuario.role.nombre === 'Admin'
-                  a(href="/actividades/pagos" class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all")
-                      i(class="fas fa-chart-line")
-                      span Reporte de Pagos
-                      
-                  a(href="/cierre-caja/historial" class="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md")
-                      i(class="fas fa-archive")
-                      span Historial de Cierres
+                        //- Filtros de Fecha
+                        div
+                            label(for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-1") Desde
+                            input(type="date" name="fechaInicio" id="fechaInicio" value=(query.fechaInicio || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg")
+                        div
+                            label(for="fechaFin" class="block text-sm font-medium text-gray-700 mb-1") Hasta
+                            input(type="date" name="fechaFin" id="fechaFin" value=(query.fechaFin || '') class="w-full px-3 py-2 border border-gray-300 rounded-lg")
+                        
+                        //- Botones de Acción
+                        div(class="lg:col-span-2 flex items-end gap-3")
+                            button(type="submit" class="w-full flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg")
+                                i(class="fas fa-search")
+                                span Buscar
+                            a(href="/mis-actividades" class="w-full flex items-center justify-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg")
+                                i(class="fas fa-undo")
+                                span Limpiar
 
-            //- 2. Panel de Búsqueda y Filtros (Sección Separada)
-            //- Este nuevo contenedor agrupa todos los filtros para un diseño más limpio.
-            div(class="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm mb-8")
-              
-              form(method="GET", action="/mis-actividades")
-                  
-                  //- FILA 1: Filtros Avanzados (solo los menús desplegables)
-                  //- Usamos un Grid para que se alineen perfectamente y sean responsive.
-                  div(class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4")
-                      //- Filtro Personal
-                      div
-                          label(for="personalId" class="block text-sm font-medium text-gray-700 mb-1") Filtrar por Personal
-                          select(name="personalId" id="personalId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
-                              option(value="") Todos
-                              each persona in personales
-                                  option(value=persona.id selected=(query.personalId == persona.id))= `${persona.nombre} ${persona.apellidos}`
-                      
-                      //- Filtro Cliente
-                      div
-                          label(for="clienteId" class="block text-sm font-medium text-gray-700 mb-1") Filtrar por Cliente
-                          select(name="clienteId" id="clienteId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
-                              option(value="") Todos
-                              each cliente in clientes
-                                  option(value=cliente.id selected=(query.clienteId == cliente.id))= `${cliente.nombre} ${cliente.apellidos}`
-                      
-                      //- Filtro Procedimiento
-                      div
-                          label(for="procedimientoId" class="block text-sm font-medium text-gray-700 mb-1") Filtrar por Procedimiento
-                          select(name="procedimientoId" id="procedimientoId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500")
-                              option(value="") Todos
-                              each procedimiento in procedimientos
-                                  option(value=procedimiento.id selected=(query.procedimientoId == procedimiento.id))= procedimiento.nombre
-
-                  //- FILA 2: Búsqueda principal y Botones de Acción
-                  //- Usamos Flexbox para alinear el campo de búsqueda y los botones.
-                  div(class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end")
-
-                    //- Campo de Búsqueda por Nombre
-                    div
-                      label(for="buscar" class="block text-sm font-medium text-gray-700 mb-1") Buscar por nombre
-                      input(
-                        type="text"
-                        name="buscar"
-                        id="buscar"
-                        placeholder="Buscar por cliente..."
-                        value=(query.buscar || '')
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500"
-                      )
-
-                    //- Filtro por Fecha Inicio
-                    div
-                      label(for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-1") Desde
-                      input(
-                        type="date"
-                        name="fechaInicio"
-                        id="fechaInicio"
-                        value=(query.fechaInicio || '')
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-fuchsia-500 focus:border-fuchsia-500"
-                      )
-
-                    //- Filtro por Fecha Fin
-                    div
-                      label(for="fechaFin" class="block text-sm font-medium text-gray-700 mb-1") Hasta
-                      input(
-                        type="date"
-                        name="fechaFin"
-                        id="fechaFin"
-                        value=(query.fechaFin || '')
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-fuchsia-500 focus:border-fuchsia-500"
-                      )
-
-                  //- Botones Buscar y Limpiar
-                  div(class="flex gap-3 mt-4")
-                    button(type="submit" class="flex items-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold px-4 py-2 rounded-lg transition")
-                      i(class="fas fa-search")
-                      span Buscar
-
-                    a(href="/mis-actividades" class="flex items-center gap-2 bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition")
-                      i(class="fas fa-undo")
-                      span Limpiar
-
-            //- =================================================================
-            //-                 FIN DE LA SECCIÓN REESTRUCTURADA
-            //- =================================================================
-
-
-            //- Mensaje para cuando no hay fichas registradas
+            //- Contenedor de las fichas
             if !fichas.length
                 div(class="text-center py-10 bg-white rounded-lg shadow")
-                    p(class="text-xl text-gray-600") No hay actividades registradas para mostrar.
-                    a(href="/actividades/crear" class="mt-4 inline-block bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-4 rounded-md transition-colors") ¡Asigna la primera!
+                    p(class="text-xl text-gray-600") No hay actividades que coincidan con tu búsqueda.
             else
-                //- Contenedor de las fichas (tarjetas por día)
                 div(class="space-y-8")
                     each ficha in fichas
-                        //- Tarjeta individual por ficha (día y personal)
                         div(class="bg-white rounded-xl shadow-lg overflow-hidden")
                             //- Cabecera de la tarjeta
                             div(class="bg-slate-50 p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-2")
@@ -148,12 +93,12 @@ block contenido
                             
                             //- Contenido de la tarjeta
                             div(class="p-4 md:p-6")
-                                //- Tabla de Actividades
+                                //- Tabla de Actividades Responsiva
                                 if ficha.actividades.length
                                     h4(class="text-fuchsia-800 font-bold text-lg mb-2") Actividades del Día
                                     div(class="overflow-x-auto")
                                         table(class="w-full text-sm text-left")
-                                            thead(class="bg-slate-100 text-slate-600 uppercase")
+                                            thead(class="hidden md:table-header-group bg-slate-100 text-slate-600 uppercase")
                                                 tr
                                                     th(class="px-4 py-2") Cliente
                                                     th(class="px-4 py-2") Procedimiento
@@ -161,94 +106,70 @@ block contenido
                                                     th(class="px-4 py-2 text-center") Acciones
                                             tbody
                                                 each actividad in ficha.actividades
-                                                    tr(class="border-b border-slate-200 hover:bg-slate-50 transition-colors")
-                                                        td(class="px-4 py-2 font-medium text-gray-800")= actividad.cliente ? `${actividad.cliente.nombre} ${actividad.cliente.apellidos}` : ''
-                                                        td(class="px-4 py-2 text-gray-600")= actividad.procedimiento ? actividad.procedimiento.nombre : ''
-                                                        td(class="px-4 py-2 text-right text-gray-700")= actividad.precio ? `$ ${parseFloat(actividad.precio.monto).toLocaleString('es-CO')}` : ''
-                                                        
-                                                        td(class="px-4 py-2 text-center flex items-center justify-center space-x-4")
-                                                          // Botón para ver detalles de materiales (tu código existente)
-                                                          if actividad.detalle_actividads && actividad.detalle_actividads.length > 0
-                                                              button(
-                                                                  type="button"
-                                                                  class="ver-detalles-btn text-blue-500 hover:text-blue-700 text-lg transition-colors cursor-pointer"
-                                                                  title="Ver Materiales Utilizados"
-                                                                  data-detalles=JSON.stringify(actividad.detalle_actividads)
-                                                              )
-                                                                  i(class="fas fa-eye")
+                                                    tr(class=`block md:table-row mb-4 md:mb-0 border md:border-none rounded-lg shadow-md md:shadow-none ${actividad.estado === 'Anulada' ? 'bg-red-50 text-gray-500' : ''}`)
+                                                        td(class="block md:table-cell p-3 text-right md:text-left border-b md:border-b-0")
+                                                            span(class="md:hidden float-left font-bold") Cliente:
+                                                            | #{actividad.cliente ? `${actividad.cliente.nombre} ${actividad.cliente.apellidos}` : ''}
+                                                        td(class="block md:table-cell p-3 text-right md:text-left border-b md:border-b-0")
+                                                            span(class="md:hidden float-left font-bold") Procedimiento:
+                                                            if actividad.estado === 'Anulada'
+                                                                span(class="px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-full mr-2") Anulada
+                                                            | #{actividad.procedimiento ? actividad.procedimiento.nombre : ''}
+                                                        td(class="block md:table-cell p-3 text-right border-b md:border-b-0")
+                                                            span(class="md:hidden float-left font-bold") Precio:
+                                                            | #{actividad.precio ? `$ ${parseFloat(actividad.precio.monto).toLocaleString('es-CO')}` : ''}
+                                                        td(class="block md:table-cell p-3")
+                                                            div(class="flex items-center justify-end md:justify-center space-x-4")
+                                                                if actividad.detalle_actividads && actividad.detalle_actividads.length > 0
+                                                                    button(type="button" class="ver-detalles-btn text-blue-500 hover:text-blue-700 text-lg" title="Ver Materiales" data-detalles=JSON.stringify(actividad.detalle_actividads))
+                                                                        i(class="fas fa-eye")
+                                                                if actividad.procedimiento
+                                                                    button(type="button" class="generar-factura-btn text-green-500 hover:text-green-700 text-lg" title="Imprimir Carta" data-actividad-id=actividad.id data-formato="carta")
+                                                                        i(class="fas fa-file-invoice")
+                                                                    button(type="button" class="generar-factura-btn text-purple-500 hover:text-purple-700 text-lg" title="Imprimir Ticket" data-actividad-id=actividad.id data-formato="ticket")
+                                                                        i(class="fas fa-receipt")
+                                                                if usuario && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor') && actividad.estado !== 'Anulada'
+                                                                    form.form-eliminar(method="POST", action=`/actividades/anular/${actividad.id}`)
+                                                                        input(type="hidden" name="_csrf" value=csrfToken)
+                                                                        button(type="submit" class="text-yellow-600 hover:text-yellow-800 text-lg" title="Anular Actividad")
+                                                                            i(class="fas fa-ban")
 
-                                                          // --- NUEVOS BOTONES PARA FACTURAS ---
-                                                          // Se muestran solo si es una actividad facturable (no un vale)
-                                                          if actividad.procedimiento
-                                                              // Botón para generar/reimprimir en formato CARTA
-                                                              button(
-                                                                  type="button"
-                                                                  class="generar-factura-btn text-green-500 hover:text-green-700 text-lg cursor-pointer"
-                                                                  title="Imprimir Factura (Carta)"
-                                                                  data-actividad-id=actividad.id
-                                                                  data-formato="carta"
-                                                              )
-                                                                  i(class="fas fa-file-invoice")
-
-                                                              // Botón para generar/reimprimir en formato TIQUETE
-                                                              button(
-                                                                  type="button"
-                                                                  class="generar-factura-btn text-purple-500 hover:text-purple-700 text-lg cursor-pointer"
-                                                                  title="Imprimir Tiquete"
-                                                                  data-actividad-id=actividad.id
-                                                                  data-formato="ticket"
-                                                              )
-                                                                  i(class="fas fa-receipt")
-
-                                                          // Formulario para eliminar (tu código existente)
-                                                          if usuario && (usuario.role.nombre === 'Admin') && actividad.estado !== 'Anulada'
-                                                            form.form-eliminar(method="POST", action=`/actividades/anular/${actividad.id}`)
-                                                                input(type="hidden" name="_csrf" value=csrfToken)
-                                                                button(type="submit" class="text-yellow-600 hover:text-yellow-800 text-lg cursor-pointer" title="Anular Actividad")
-                                                                    i(class="fas fa-ban")
-                                else
-                                    p(class="text-center text-gray-500 py-4") No hay actividades registradas para esta ficha.
-
-                                //- Tabla de Vales
+                                //- Tabla de Vales Responsiva
                                 if ficha.vales.length
                                     h4(class="text-purple-800 font-bold text-lg mt-6 mb-2") Vales Registrados
                                     div(class="overflow-x-auto")
                                         table(class="w-full text-sm text-left")
-                                            thead(class="bg-slate-100 text-slate-600 uppercase")
+                                            thead(class="hidden md:table-header-group bg-slate-100 text-slate-600 uppercase")
                                                 tr
                                                     th(class="px-4 py-2") Descripción
                                                     th(class="px-4 py-2 text-right") Monto
-                                                    th(class="px-4 py-2 text-center") Hora
                                                     th(class="px-4 py-2 text-center") Acciones
                                             tbody
                                                 each vale in ficha.vales
-                                                    tr(class="border-b border-slate-200 hover:bg-slate-50 transition-colors")
-                                                        td(class="px-4 py-2 font-medium text-gray-800")= vale.descripcion
-                                                        td(class="px-4 py-2 text-right text-gray-700") $#{parseFloat(vale.vales).toLocaleString('es-CO')}
-                                                        td(class="px-4 py-2 text-center text-gray-600")= vale.createdAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-                                                        td(class="px-4 py-2 text-center")
-                                                          // Verificamos si el usuario tiene el rol de admin
-                                                          if usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
-                                                              form.form-eliminar(method="POST", action=`/actividades/eliminar/vale/${vale.id}`,class="ml-4")
-                                                                  input(type="hidden" name="_csrf" value=csrfToken)
-                                                                  button(type="submit" class="text-red-500 hover:text-red-700 text-lg cursor-pointer transition-colors" title="Eliminar Vale")
-                                                                      i(class="fas fa-trash")
-                                                          else
-                                                              form.form-eliminar(method="POST", action="#")
-                                                                  input(type="hidden" name="_csrf" value=csrfToken)
-                                                                  button(type="button" class="text-gray-500 text-lg cursor-not-allowed" title="No tienes permiso para eliminar" disabled)
-                                                                      i(class="fas fa-trash")
+                                                    tr(class="block md:table-row mb-4 md:mb-0 border md:border-none rounded-lg shadow-md md:shadow-none")
+                                                        td(class="block md:table-cell p-3 text-right md:text-left border-b md:border-b-0")
+                                                            span(class="md:hidden float-left font-bold") Descripción:
+                                                            | #{vale.descripcion}
+                                                        td(class="block md:table-cell p-3 text-right border-b md:border-b-0")
+                                                            span(class="md:hidden float-left font-bold") Monto:
+                                                            | $#{parseFloat(vale.vales).toLocaleString('es-CO')}
+                                                        td(class="block md:table-cell p-3")
+                                                            div(class="flex items-center justify-end md:justify-center")
+                                                                - const hasPermission = usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
+                                                                form.form-eliminar(method="POST", action=hasPermission ? `/actividades/eliminar/vale/${vale.id}` : '#')
+                                                                    input(type="hidden" name="_csrf" value=csrfToken)
+                                                                    button(type=hasPermission ? "submit" : "button" disabled=!hasPermission class=`text-lg ${hasPermission ? 'text-red-500 hover:text-red-700' : 'text-gray-400 cursor-not-allowed'}` title="Eliminar Vale")
+                                                                        i(class="fas fa-trash")
 
-                            //- Sección de Totales
-                            div(class="bg-slate-50 p-4 border-t border-slate-200 space-y-2")
-                                div(class="flex justify-end items-baseline gap-4")
-                                    span(class="font-semibold text-gray-600") Total Actividades:
-                                    span(class="text-fuchsia-600 text-xl font-bold") $#{parseFloat(ficha.totalActividades).toLocaleString('es-CO')}
-                                if ficha.vales.length
+                                //- Sección de Totales
+                                div(class="bg-slate-50 p-4 border-t border-slate-200 space-y-2")
                                     div(class="flex justify-end items-baseline gap-4")
-                                        span(class="font-semibold text-gray-600") Total Vales:
-                                        span(class="text-purple-600 text-lg font-bold") $#{parseFloat(ficha.totalVales).toLocaleString('es-CO')}
-
+                                        span(class="font-semibold text-gray-600") Total Actividades:
+                                        span(class="text-fuchsia-600 text-xl font-bold") $#{parseFloat(ficha.totalActividades).toLocaleString('es-CO')}
+                                    if ficha.vales.length
+                                        div(class="flex justify-end items-baseline gap-4")
+                                            span(class="font-semibold text-gray-600") Total Vales:
+                                            span(class="text-purple-600 text-lg font-bold") $#{parseFloat(ficha.totalVales).toLocaleString('es-CO')}
                 //- Paginación
                 if totalPaginas > 1
                     div(class="mt-8")

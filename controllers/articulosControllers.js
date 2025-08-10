@@ -5,51 +5,56 @@ import { Op } from 'sequelize';
 
 // Muestra la lista de todos los artículos con paginación
 const leerArticulos = async (req, res) => {
-    // Definimos cuántos artículos se mostrarán por página
+    // --- 1. Se leen los parámetros de la URL para paginación y filtros ---
+    const { page = 1, busqueda = '', categoriaId = '' } = req.query;
     const elementosPorPagina = 12;
-    const paginaActual = Number(req.query.page) || 1;
-    const offset = (paginaActual - 1) * elementosPorPagina;
+    const offset = (page - 1) * elementosPorPagina;
 
     try {
-        // Obtenemos el total de artículos y los registros de la página actual
-        const { count, rows: articulos } = await Articulo.findAndCountAll({
-            limit: elementosPorPagina,
-            offset,
-            order: [['nombre_articulo', 'ASC']],
-            include: [
-                {
-                    model: CategoriaArticulo,
-                    as: 'categoria',
-                    attributes: ['nombre_categoria']
-                },
-                {
-                    model: UnidadDeMedida,
-                    as: 'unidad',
-                    attributes: ['abreviatura']
-                }
-            ]
-        });
+        // --- 2. Construcción de la Cláusula `where` para la búsqueda ---
+        const whereClause = {};
+        if (busqueda) {
+            whereClause.nombre_articulo = { [Op.like]: `%${busqueda}%` };
+        }
+        if (categoriaId) {
+            whereClause.categoriaId = categoriaId;
+        }
 
-        //console.log(JSON.stringify(articulos[0], null, 2));        
+        // --- 3. Consultas a la Base de Datos ---
+        // Se usa Promise.all para traer las categorías para el filtro y los artículos paginados
+        const [categorias, { count, rows: articulos }] = await Promise.all([
+            CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
+            Articulo.findAndCountAll({
+                where: whereClause, // Se aplica el filtro
+                limit: elementosPorPagina,
+                offset,
+                order: [['nombre_articulo', 'ASC']],
+                include: [
+                    { model: CategoriaArticulo, as: 'categoria', attributes: ['nombre_categoria'] },
+                    { model: UnidadDeMedida, as: 'unidad', attributes: ['abreviatura'] }
+                ]
+            })
+        ]);
 
-        // Calculamos el número total de páginas
+        // 4. Cálculo de Paginación
         const totalPaginas = Math.ceil(count / elementosPorPagina);
 
+        // 5. Renderizado de la Vista
         res.render('articulos/leer', {
             pagina: 'Gestión de Artículos y Conceptos',
             barra: true,
             piePagina: true,
-            articulos, // Pasamos los artículos de la página actual            
+            articulos,
             csrfToken: req.csrfToken(),
-            paginaActual,
+            paginaActual: Number(page),
             totalPaginas,
-            offset,
-            count
+            count,
+            categorias, // Se pasa la lista de categorías para el filtro
+            query: req.query // Se pasan los parámetros para rellenar el formulario de búsqueda
         });
 
     } catch (error) {
         console.error('Error al leer los artículos:', error);
-        // Aquí podrías renderizar una vista de error más amigable
         res.status(500).send('Hubo un error al cargar los artículos.');
     }
 };

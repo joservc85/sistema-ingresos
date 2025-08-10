@@ -28,6 +28,13 @@ const Usuario = db.define('usuarios',{
         beforeCreate: async function (usuario) {
             const salt = await bcrypt.genSalt(10)
             usuario.password = await bcrypt.hash(usuario.password, salt);
+        },
+         beforeUpdate: async function (usuario) {
+            // Comprueba si el campo de la contraseña ha sido modificado
+            if (usuario.changed('password')) {
+                const salt = await bcrypt.genSalt(10);
+                usuario.password = await bcrypt.hash(usuario.password, salt);
+            }
         }
    } ,
    scopes: {

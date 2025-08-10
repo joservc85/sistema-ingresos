@@ -5,12 +5,13 @@ block contenido
     div(class="bg-gradient-to-br from-violet-100 via-rose-50 to-white min-h-screen flex items-center justify-center py-12 px-4")
 
         div(class="w-full max-w-md")
-            div
-                // Título con una tipografía más elegante
-                h1(class="text-4xl font-bold text-center text-gray-800") Sistemas Ingresos
-                p(class="text-xl text-center text-gray-600") Damaris Spa
+            div(class="text-center")
+                //- --- CORRECCIÓN: Se reordenan los elementos y se ajustan los márgenes ---
+                h1(class="text-4xl font-bold text-gray-800 mb-4") Sistemas Ingresos
                 
-                h2(class="text-center text-2xl font-semibold mt-8 text-gray-700")= pagina
+                img(src="/img/logo.png" alt="Logotipo de Damaris Spa" class="mx-auto h-22 w-auto")
+                
+                h2(class="text-center text-2xl font-semibold mt-2 text-gray-700")= pagina
 
             if errores
                 div(class="max-w-md mx-auto my-6")
@@ -27,28 +28,33 @@ block contenido
                     
                     // --- Input de USUARIO con icono (ANTES ERA EMAIL) ---
                     div(class="relative")
-                        label(for="username" class="sr-only") Tu Nombre de Usuario // <-- CAMBIO
+                        label(for="username" class="sr-only") Tu Nombre de Usuario
                         div(class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none")
                             // <-- CAMBIO: Se reemplazó el ícono de sobre por uno de usuario
                             svg(class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor")
                                 path(fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd")
                         
-                        // <-- CAMBIO: Se actualizaron los atributos id, type, name y placeholder
                         input#username(type="text" name="username" placeholder="Tu Nombre de Usuario" class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent")
                     
-                    // Input de Password con icono (sin cambios)
                     div(class="relative")
                         label(for="password" class="sr-only") Tu Password
+                        // Icono de candado a la izquierda
                         div(class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none")
                             svg(class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor")
                                 path(fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd")
-                        input#password(type="password" name="password" placeholder="Tu Password" class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent")
-                    
-                    // Botón con gradiente y mejores efectos
+                        
+                        input#password(type="password" name="password" placeholder="Tu Password" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent")
+                        
+                        // Botón para mostrar/ocultar contraseña
+                        div(class="absolute inset-y-0 right-0 pr-3 flex items-center")
+                            button(type="button" class="text-gray-400 hover:text-gray-600 focus:outline-none" data-toggle-password="password")
+                                i(class="fas fa-eye")
+
                     input(type="submit" value="Iniciar Sesión" class="w-full bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-md cursor-pointer transition-all duration-300 transform hover:scale-105")
 
 
 block scripts
+    script(src="/js/showPassword.js")
     if query.logout
         script.
             Swal.fire({

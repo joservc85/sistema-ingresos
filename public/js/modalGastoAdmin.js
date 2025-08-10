@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const tr = document.createElement('tr');
                     tr.className = 'border-b';
                     tr.innerHTML = `
-                        <td class="px-4 py-2">${detalle.Articulo.nombre_articulo}</td>
+                        <td class="px-4 py-2">${detalle.articulo.nombre_articulo}</td>
                         <td class="px-4 py-2 text-right">${detalle.cantidad}</td>
                     `;
                     tbody.appendChild(tr);

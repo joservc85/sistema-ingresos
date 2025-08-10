@@ -10,6 +10,11 @@ const GastoAdministrativo = db.define('gastos_administrativos', {
     descripcion: {
         type: DataTypes.TEXT,
         allowNull: false
+    },
+    estado: {
+        type: DataTypes.ENUM('Consolidado', 'Anulado'),
+        allowNull: false,
+        defaultValue: 'Consolidado'
     }
     // El usuario que lo registró se añadirá por la relación
 });

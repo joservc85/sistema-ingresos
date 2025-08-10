@@ -3,57 +3,36 @@ html(lang="es")
     head
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        link(rel="icon" type="image/png" href="/img/logo_1.png")
         title Sistemas de Ingresos | #{pagina}
-
-        //- Hoja de estilos principal de Tailwind CSS
         link(rel="stylesheet", href="/css/output.css")
+        link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css")
         
-        //- Hoja de estilos para los iconos de Font Awesome
-        link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css")
-
-        //- CSS DE TOM SELECT
         link(href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet")
-
-        //- Bloque para estilos adicionales específicos de una página
+        
         block styles
 
-    //- El body usa Flexbox para que el footer siempre quede abajo (sticky footer)
-    body(class="min-h-screen bg-gray-50 flex flex-col")
-
-        //- Se muestra el header solo si la variable 'barra' es true
+    body(class="bg-gray-100")
+        //- El header ahora está fuera del contenedor principal, asegurando que ocupe todo el ancho
         if barra
             include header
 
-        //- Contenido principal que cambiará en cada página
-        main(class="container mx-auto mt-10 px-4 flex-grow")
-            block contenido
+        //- Contenedor para el sidebar y el contenido principal
+        div(class="flex h-[calc(100vh-68px)]")
+            if barra
+                include sidebar
 
-        //- Se muestra el footer solo si la variable 'piePagina' es true
-        if piePagina
-            footer(class="bg-fuchsia-600 text-white py-4 text-center text-sm mt-10")
-                | &copy; #{new Date().getFullYear()} Damaris Spa. Todos los derechos reservados.
-
-        //- Scripts principales
-        script(src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js")
+            //- El contenido principal es el que tendrá scroll
+            main#main-content(class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto")
+                block contenido
+        
+        //- Scripts de librerías globales. Se cargan ANTES de los scripts de cada página.
         script(src="https://cdn.jsdelivr.net/npm/sweetalert2@11")
+        script(src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js")
+        
+        if barra
+            script(src="/js/sidebar.js")
+            script(src="/js/gestionAlertas.js")
 
-        //- --- SCRIPT PARA EL HEADER RESPONSIVO (AÑADIDO AQUÍ) ---
-        //- Al estar en el layout principal, nos aseguramos de que siempre se cargue.
-        script.
-            document.addEventListener('DOMContentLoaded', () => {
-                const hamburgerButton = document.getElementById('hamburger-button');
-                const mobileMenu = document.getElementById('mobile-menu');
-
-                if (hamburgerButton && mobileMenu) {
-                    hamburgerButton.addEventListener('click', () => {
-                        mobileMenu.classList.toggle('hidden');
-                    });
-                }
-            });
-
-        //- Bloque para scripts adicionales específicos de una página
+        //- Bloque para que las páginas hijas puedan añadir sus propios scripts específicos
         block scripts
-        script(src="/js/gestionAlertas.js")
-
-
-

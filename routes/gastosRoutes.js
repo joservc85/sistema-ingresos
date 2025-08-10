@@ -8,10 +8,10 @@ import {
     guardarGasto,
     formEditarGasto,
     editarGasto,
-    eliminarGasto,
+    anularGasto,
     obtenerGastoJSON
 } from '../controllers/gastosControllers.js'; // Importaremos las funciones del controlador
-import { protegerRuta } from '../middleware/protegerRuta.js';
+import { protegerRuta,esAdmin } from '../middleware/protegerRuta.js';
 
 const router = express.Router();
 
@@ -94,15 +94,12 @@ router.post('/editar/:id',
 );
 
 
-// --- Ruta para Eliminar ---
-router.post('/eliminar/:id',
-    protegerRuta,
-    eliminarGasto
-);
+// --- Ruta para Anular ---
+router.post('/anular/:id', protegerRuta, esAdmin, anularGasto);
 
 router.get('/api/:id',
     protegerRuta,
-    obtenerGastoJSON // Necesitaremos crear esta función en el controlador
+    obtenerGastoJSON 
 );
 
 export default router;

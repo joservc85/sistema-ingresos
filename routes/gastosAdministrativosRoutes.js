@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { formularioGasto, guardarGasto, formularioEditarGasto, guardarGastoEditado, verGastoAdmin, eliminarGastoAdmin } from '../controllers/gastoAdministrativoController.js';
-import {protegerRuta} from '../middleware/protegerRuta.js';
+import { formularioGasto, guardarGasto, formularioEditarGasto, guardarGastoEditado, verGastoAdmin, anularGastoAdmin } from '../controllers/gastoAdministrativoController.js';
+import {protegerRuta, esAdmin} from '../middleware/protegerRuta.js';
 
 const router = express.Router();
 
@@ -32,9 +32,6 @@ router.post('/editar/:id',
 
 router.get('/ver/:id', protegerRuta, verGastoAdmin);
 
-router.post('/eliminar/:id',
-    protegerRuta,
-    eliminarGastoAdmin
-);
+router.post('/anular/:id', protegerRuta, esAdmin, anularGastoAdmin);
 
 export default router;

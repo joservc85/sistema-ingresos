@@ -61,11 +61,16 @@ const GastoAdicional = db.define('gastos_adicionales', {
             model: Usuario, // Referencia al modelo de Usuario
             key: 'id'
         }
+    },
+    estado: {
+        type: DataTypes.ENUM('Consolidado', 'Anulado'),
+        allowNull: false,
+        defaultValue: 'Consolidado'
     }
 }, {
     timestamps: true,
     tableName: 'gastos_adicionales',
-}
+},
 );
 
 export default GastoAdicional;

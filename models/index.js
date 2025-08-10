@@ -24,6 +24,8 @@ import FormaDePago from './FormaDePago.js';
 import Banco from './Banco.js';
 import CierreDeCaja from './CierreDeCaja.js';
 import Auditoria from './Auditoria.js';
+import PagoActividad from './PagoActividad.js';
+
 
 // Relaciones de 1:1 correctas para Sequelize (aunque son de uno a muchos)
 
@@ -63,9 +65,6 @@ DetalleActividad.belongsTo(Articulo, { foreignKey: 'articuloId' });
 Actividad.hasOne(Factura, { foreignKey: 'actividadId' });
 Factura.belongsTo(Actividad, { foreignKey: 'actividadId' });
 
-// --- ¡Nuevas relaciones para Gastos Adicionales y Artículos! ---
-
-// Un GastoAdicional pertenece a un Proveedor
 // Un proveedor puede tener muchos gastos adicionales
 GastoAdicional.belongsTo(Proveedor, { foreignKey: 'proveedorId' });
 Proveedor.hasMany(GastoAdicional, { foreignKey: 'proveedorId' });
@@ -98,13 +97,13 @@ GastoAdministrativo.hasMany(DetalleGastoAdministrativo, {  as: 'detalles', forei
 DetalleGastoAdministrativo.belongsTo(GastoAdministrativo, { foreignKey: 'gastoId' });
 
 // Un Detalle de Gasto se refiere a un Artículo
-DetalleGastoAdministrativo.belongsTo(Articulo, { foreignKey: 'articuloId' });
+DetalleGastoAdministrativo.belongsTo(Articulo, { foreignKey: 'articuloId', as: 'articulo' });
 Articulo.hasMany(DetalleGastoAdministrativo, { foreignKey: 'articuloId' });
 
 // Una Unidad de Medida puede tener muchos Artículos
 UnidadDeMedida.hasMany(Articulo, { foreignKey: 'unidad_medida_Id' });
 // Un Usuario pertenece a un Rol (Usuario N -> 1 Rol)
-Usuario.belongsTo(Rol, { foreignKey: 'rolId', onDelete: 'CASCADE' });
+Usuario.belongsTo(Rol, { as: 'role', foreignKey: 'rolId', onDelete: 'CASCADE' });
 
 // Una Venta de Ropa es registrada por un Usuario
 VentaRopa.belongsTo(Usuario, { foreignKey: 'usuarioId' });
@@ -131,6 +130,17 @@ Cliente.hasMany(VentaRopa, { foreignKey: 'clienteId' });
 // Relaciones para Actividad
 Actividad.belongsTo(FormaDePago, { foreignKey: 'formaDePagoId' });
 Actividad.belongsTo(Banco, { foreignKey: 'bancoId' });
+// Una Actividad ahora puede tener MUCHOS Pagos
+Actividad.hasMany(PagoActividad, { foreignKey: 'actividadId' });
+PagoActividad.belongsTo(Actividad, { foreignKey: 'actividadId' });
+
+// Cada Pago pertenece a UNA Forma de Pago
+PagoActividad.belongsTo(FormaDePago, { foreignKey: 'formaDePagoId' });
+FormaDePago.hasMany(PagoActividad, { foreignKey: 'formaDePagoId' });
+
+// Cada Pago PUEDE pertenecer a UN Banco (opcional)
+PagoActividad.belongsTo(Banco, { foreignKey: 'bancoId' });
+Banco.hasMany(PagoActividad, { foreignKey: 'bancoId' });
 
 // Relaciones para CierreDeCaja
 CierreDeCaja.belongsTo(Usuario, { foreignKey: 'usuarioId' });
@@ -169,6 +179,7 @@ export{
     FormaDePago,
     Banco,
     CierreDeCaja,
-    Auditoria
+    Auditoria,
+    PagoActividad
 }
 

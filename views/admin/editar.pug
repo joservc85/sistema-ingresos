@@ -1,0 +1,60 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        h1(class="text-4xl my-10 font-extrabold text-center") Editar 
+            span(class="font-normal") Usuario del Sistema
+
+        div(class="bg-white shadow py-8 px-4 rounded-lg max-w-md mx-auto")
+            div(class="flex justify-start mb-6")
+                a(href="/admin/usuarios" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar a Usuarios
+
+            if errores
+                div(class="mb-6")
+                    each error in errores
+                        p(class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2 font-bold")= error.msg
+
+            //- La acción del formulario ahora usa 'datosUsuario'
+            form(method="POST" action=`/admin/usuarios/editar/${datosUsuario.id}`)
+                input(type="hidden" name="_csrf" value=csrfToken)
+
+                div(class="space-y-5")
+                    div
+                        label(for="nombre" class="block text-sm font-medium text-gray-700") Nombre
+                        input#nombre(type="text" name="nombre" value=datosUsuario.nombre class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+
+                    div
+                        label(for="username" class="block text-sm font-medium text-gray-700") Nombre de Usuario
+                        input#username(type="text" name="username" value=datosUsuario.username class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+
+                    div
+                        label(for="rolId" class="block text-sm font-medium text-gray-700") Rol del Usuario
+                        select#rolId(name="rolId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+                            option(value="") -- Seleccione un Rol --
+                            each rol in roles
+                                option(value=rol.id selected=(datosUsuario.rolId == rol.id)) #{rol.nombre}
+                
+                div(class="mt-5 pt-5 border-t space-y-5")
+                    p(class="text-sm text-gray-500") Si deseas cambiar la contraseña, déjalos en blanco.
+                    
+                    div(class="relative")
+                        label(for="password" class="block text-sm font-medium text-gray-700") Nueva Contraseña
+                        input#password(type="password" name="password" class="w-full pr-10 mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+                        div(class="absolute inset-y-0 right-0 top-6 pr-3 flex items-center")
+                            button(type="button" class="text-gray-400 hover:text-gray-600" data-toggle-password="password")
+                                i(class="fas fa-eye")
+
+                    div(class="relative")
+                        label(for="repetir_password" class="block text-sm font-medium text-gray-700") Repetir Contraseña
+                        input#repetir_password(type="password" name="repetir_password" class="w-full pr-10 mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm")
+                        div(class="absolute inset-y-0 right-0 top-6 pr-3 flex items-center")
+                            button(type="button" class="text-gray-400 hover:text-gray-600" data-toggle-password="repetir_password")
+                                i(class="fas fa-eye")
+
+                div(class="mt-8")
+                    input(type="submit" value="Guardar Cambios" class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 cursor-pointer rounded-lg")
+
+block scripts
+    script(src="/js/showPassword.js")

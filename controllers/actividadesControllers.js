@@ -1,5 +1,5 @@
 import { validationResult } from 'express-validator';
-import { Actividad, DetalleActividad, Personal, Cliente, Procedimiento, Precio, Articulo, FormaDePago, Banco, Auditoria } from '../models/index.js'
+import { Actividad, DetalleActividad, Personal, Cliente, Procedimiento, Precio, Articulo, FormaDePago, Banco, Auditoria, PagoActividad } from '../models/index.js'
 import db from '../config/db.js';
 import { Op } from 'sequelize';
 
@@ -122,7 +122,10 @@ const crear = async (req, res) => {
     // --- CONSULTA ACTUALIZADA ---
     // Ahora también traemos las formas de pago y los bancos
     const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
-        Personal.findAll({ order: [['nombre', 'ASC']] }),
+        Personal.findAll({ 
+          where: { activo: true },
+          order: [['nombre', 'ASC']] 
+        }),
         Cliente.findAll({ 
             where: { activo: true, tipo: { [Op.in]: ['Spa', 'Ambos'] } },
             order: [['nombre', 'ASC']] 
@@ -178,6 +181,8 @@ const guardar = async (req, res) => {
         return res.render('actividades/crear', {
             pagina: 'Crear Actividad',
             csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
             personals, clientes, procedimientos, articulos, formasDePago, bancos,
             errores: resultado.array(),
             datos: req.body
@@ -234,8 +239,12 @@ const guardar = async (req, res) => {
     const t = await db.transaction();
     try {
         // --- CORRECCIÓN: Extraer todos los campos, incluyendo 'referencia_pago' ---
-        const { personal, cliente, procedimiento, precio, vales, descripcion, formaDePagoId, bancoId, referencia_pago } = req.body;
+        const { personal, cliente, procedimiento, precio, vales, descripcion } = req.body;
+
         const { id: usuarioId } = req.usuario;
+
+        // Datos de los pagos múltiples
+        let { formaDePagoId, monto, bancoId, referencia_pago } = req.body;
 
         // Caso A: Guardar solo un Vale
         if (soloVales === 'on') {
@@ -248,17 +257,46 @@ const guardar = async (req, res) => {
         
         // Caso B: Guardar una Actividad completa
         } else {
+            // --- 3.A. Validar que la suma de los pagos coincida con el precio ---
+            const precioProcedimiento = await Precio.findByPk(precio);
+            if (!precioProcedimiento) {
+                throw new Error('El precio del procedimiento no es válido.');
+            }
+
+            // Normalizar los montos para que siempre sean un array
+            if (monto && !Array.isArray(monto)) {
+                monto = [monto];
+            }
+            const totalPagado = monto.reduce((total, m) => total + (parseFloat(m.replace(/[^0-9]/g, '')) || 0), 0);
+
+            if (totalPagado !== parseFloat(precioProcedimiento.monto)) {
+                throw new Error(`La suma de los pagos ($${totalPagado.toLocaleString('es-CO')}) no coincide con el precio del procedimiento ($${parseFloat(precioProcedimiento.monto).toLocaleString('es-CO')}).`);
+            }
+
             const nuevaActividad = await Actividad.create({
                 personalId: personal,
                 clienteId: cliente,
                 procedimientoId: procedimiento,
                 precioId: precio,
-                usuarioId,
-                // --- CORRECCIÓN: Guardar los nuevos campos de pago ---
-                formaDePagoId: formaDePagoId || null,
-                bancoId: bancoId || null,
-                referencia_pago: referencia_pago || null
+                usuarioId
             }, { transaction: t });
+
+            // --- 3.C. Crear los registros de pago en la nueva tabla ---
+            if (formaDePagoId && Array.isArray(formaDePagoId)) {
+                const pagosParaGuardar = [];
+                for (let i = 0; i < formaDePagoId.length; i++) {
+                    if (formaDePagoId[i]) {
+                        pagosParaGuardar.push({
+                            monto: parseFloat(monto[i].replace(/[^0-9]/g, '')) || 0,
+                            actividadId: nuevaActividad.id,
+                            formaDePagoId: formaDePagoId[i],
+                            bancoId: bancoId[i] || null,
+                            referencia_pago: referencia_pago[i] || null
+                        });
+                    }
+                }
+                await PagoActividad.bulkCreate(pagosParaGuardar, { transaction: t });
+            }
 
             // Bucle para guardar detalles y actualizar stock (sin cambios)
             if (articuloId && Array.isArray(articuloId)) {
@@ -287,7 +325,24 @@ const guardar = async (req, res) => {
     } catch (error) {
         await t.rollback();
         console.error(error);
-        return res.redirect(`/actividades/crear?error=Ocurrió un error inesperado al guardar la actividad.`);
+        
+        // Recargar datos y renderizar con el error específico
+        const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
+            Personal.findAll({ where: { activo: true } }),
+            Cliente.findAll({ where: { activo: true } }),
+            Procedimiento.findAll({ include: [{ model: Precio, as: 'precio' }] }),
+            Articulo.findAll({ where: { activo: true, stock_actual: { [Op.gt]: 0 } } }),
+            FormaDePago.findAll(),
+            Banco.findAll()
+        ]);
+        return res.render('actividades/crear', {
+            pagina: 'Crear Actividad',
+            csrfToken: req.csrfToken(),
+            barra: true, piePagina: true,
+            personals, clientes, procedimientos, articulos, formasDePago, bancos,
+            errores: [{ msg: error.message }], // Se muestra el error de validación de pago
+            datos: req.body
+        });
     }
 };
 

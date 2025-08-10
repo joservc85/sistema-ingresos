@@ -8,7 +8,7 @@ const protegerRuta = async (req, res, next) => {
     // Verificar si hay un Token
     const {_token} = req.cookies
     if(!_token){
-        return res.redirect('/auth/login')
+        return res.redirect('/DamarisSpa')
     }
 
     // Comprobar el Token
@@ -25,10 +25,10 @@ const protegerRuta = async (req, res, next) => {
             
             return next(); // Continuamos a la siguiente función
         } else {
-            return res.redirect('/auth/login')
+            return res.redirect('/DamarisSpa')
         }
     } catch (error) {
-        return res.clearCookie('_token').redirect('/auth/login')    
+        return res.clearCookie('_token').redirect('/DamarisSpa')   
     }
 }
 

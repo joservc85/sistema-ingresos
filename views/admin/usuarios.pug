@@ -64,10 +64,8 @@ block contenido
                             // NUEVO: Celda de acciones con botones estilizados y centrados usando Flexbox
                             td(class="px-5 py-5 border-b border-gray-200 bg-white text-sm")
                                 div(class="flex items-center justify-center gap-x-4")
-                                    // Botón Editar estilizado
                                     a(href=`/admin/usuarios/editar/${usuario.id}` class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1 rounded-md font-semibold text-xs transition-colors") Editar
-                                    
-                                    // Formulario de Eliminar con botón estilizado
+
                                     form(method="POST" action=`/admin/usuarios/eliminar/${usuario.id}` class="inline")
                                         input(type="hidden" name="_csrf" value=csrfToken)
                                         // Botón Eliminar estilizado

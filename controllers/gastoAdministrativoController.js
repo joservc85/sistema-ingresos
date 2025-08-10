@@ -1,7 +1,7 @@
 import { validationResult } from 'express-validator';
 import { Op } from 'sequelize';
 import db from '../config/db.js';
-import { Articulo, GastoAdministrativo, DetalleGastoAdministrativo, Usuario } from '../models/index.js';
+import { Articulo, GastoAdministrativo, DetalleGastoAdministrativo, Usuario, Auditoria } from '../models/index.js';
 
 // Muestra el formulario para registrar un gasto administrativo
 const formularioGasto = async (req, res) => {
@@ -16,7 +16,7 @@ const formularioGasto = async (req, res) => {
         order: [['nombre_articulo', 'ASC']]
     });
 
-    res.render('gastos/administrativos/crear', { // Asegúrate de que la ruta a tu vista sea correcta
+    res.render('gastos/administrativos/crear', { 
         pagina: 'Registrar Consumo Interno',
         csrfToken: req.csrfToken(),
         barra: true,
@@ -32,9 +32,11 @@ const guardarGasto = async (req, res) => {
     const resultado = validationResult(req);
     if (!resultado.isEmpty()) {
         const articulos = await Articulo.findAll({ where: { activo: true, stock_actual: { [Op.gt]: 0 } } });
-        return res.render('gastos/administrativos', {
+        return res.render('gastos/administrativos/crear', {
             pagina: 'Registrar Consumo Interno',
             csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
             articulos,
             errores: resultado.array(),
             datos: req.body
@@ -256,7 +258,7 @@ const verGastoAdmin = async (req, res) => {
                 {
                     model: DetalleGastoAdministrativo,
                     as: 'detalles',
-                    include: [{ model: Articulo }]
+                    include: [{ model: Articulo, as: 'articulo' }]
                 }
             ]
         });
@@ -274,54 +276,64 @@ const verGastoAdmin = async (req, res) => {
     }
 };
 
-// Eliminar Gastos Administrativos
-const eliminarGastoAdmin = async (req, res) => {
+// Anular Gastos Administrativos
+const anularGastoAdmin = async (req, res) => {
     const { id } = req.params;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
-    // Verificar permisos de Admin o Supervisor
+    console.log(`DEBUG: Iniciando anulación de Gasto Administrativo con ID: ${id}`);
+
     if (req.usuario.role.nombre !== 'Admin' && req.usuario.role.nombre !== 'Supervisor') {
-        return res.status(403).send('No tienes permiso para realizar esta acción');
+        return res.redirect(`/gastos?error=No tienes permiso para anular gastos.`);
     }
 
     const t = await db.transaction();
     try {
-        // 1. Buscar el gasto a eliminar con sus detalles
         const gasto = await GastoAdministrativo.findByPk(id, {
-            include: [{
-                model: DetalleGastoAdministrativo,
-                as: 'detalles',
-                include: [Articulo]
+            include: [{ 
+                model: DetalleGastoAdministrativo, 
+                as: 'detalles', 
+                include: [{ model: Articulo, as: 'articulo' }] 
             }],
             transaction: t
         });
 
-        if (!gasto) {
-            await t.rollback();
-            return res.redirect('/gastos?error=Consumo no encontrado');
-        }
+        if (!gasto) throw new Error('Consumo no encontrado.');
+        if (gasto.estado === 'Anulado') throw new Error('Este consumo ya ha sido anulado.');
 
-        // 2. Revertir el stock: devolver los artículos al inventario
         for (const detalle of gasto.detalles) {
-            if (detalle.Articulo) {
-                detalle.Articulo.stock_actual = parseFloat(detalle.Articulo.stock_actual) + parseFloat(detalle.cantidad);
-                await detalle.Articulo.save({ transaction: t });
+            // Verificamos si el artículo asociado existe en el detalle
+            if (detalle.articulo) {
+                              
+                // Sumamos la cantidad consumida de vuelta al stock actual
+                detalle.articulo.stock_actual = parseFloat(detalle.articulo.stock_actual) + parseFloat(detalle.cantidad);                              
+                await detalle.articulo.save({ transaction: t });
+                
+            } else {
+                console.log('DEBUG: ADVERTENCIA - No se encontró el artículo asociado a este detalle (detalle.articulo es nulo).');
             }
         }
 
-        // 3. Eliminar el gasto. La base de datos se encargará de borrar los detalles en cascada.
-        await gasto.destroy({ transaction: t });
+        gasto.estado = 'Anulado';
+        await gasto.save({ transaction: t });
+        console.log('DEBUG: Estado del gasto cambiado a "Anulado".');
 
-        // 4. Si todo fue exitoso, confirmar la transacción
+        await Auditoria.create({
+            accion: 'ANULAR',
+            tabla_afectada: 'gastos_administrativos',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} anuló el consumo interno #${id}.`,
+            usuarioId
+        }, { transaction: t });
+        
         await t.commit();
-        res.redirect('/gastos?mensaje=Consumo interno eliminado correctamente');
+        res.redirect('/gastos?mensaje=Consumo interno anulado correctamente.');
 
     } catch (error) {
         await t.rollback();
-        console.error('Error al eliminar el gasto administrativo:', error);
-        res.redirect(`/gastos?error=${encodeURIComponent('No se pudo eliminar el consumo.')}`);
+        res.redirect(`/gastos?error=${encodeURIComponent(error.message)}`);
     }
 };
-
 
 export {
     formularioGasto,
@@ -329,5 +341,5 @@ export {
     formularioEditarGasto,
     guardarGastoEditado,
     verGastoAdmin,
-    eliminarGastoAdmin
+    anularGastoAdmin
 };

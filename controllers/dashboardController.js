@@ -44,6 +44,7 @@ const mostrarDashboard = async (req, res) => {
 
         res.render('dashboard/index', { // Crearemos esta vista
             pagina: 'Panel de Control',
+            csrfToken: req.csrfToken(),
             barra: true,
             piePagina: true,
             totalVentasHoy,

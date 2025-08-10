@@ -7,7 +7,6 @@ const mostrarCierre = async (req, res) => {
     const fechaQuery = req.query.fecha || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 
     try {
-        // Verificar si ya existe un cierre para esta fecha
         const cierreExistente = await CierreDeCaja.findOne({
             where: {
                 fecha_cierre: fechaQuery,
@@ -16,36 +15,44 @@ const mostrarCierre = async (req, res) => {
         });
 
         if (cierreExistente) {
-            // Si ya existe, mostramos los datos guardados (en una futura vista de "ver cierre")
-            // Por ahora, redirigimos o mostramos un mensaje.
             return res.render('caja/cierre-existente', {
                 pagina: 'Cierre ya Realizado',
                 cierre: cierreExistente,
-                csrfToken: req.csrfToken(),
                 barra: true,
-                piePagina: true,
+                piePagina: true
             });
         }
 
-        const inicioDelDia = new Date(`${fechaQuery}T00:00:00.000-05:00`); // Ajustado a la zona horaria de Bogotá (GMT-5)
-        const finDelDia = new Date(`${fechaQuery}T23:59:59.999-05:00`); // Ajustado a la zona horaria de Bogotá (GMT-5)
+        const inicioDelDia = new Date(`${fechaQuery}T00:00:00.000-05:00`);
+        const finDelDia = new Date(`${fechaQuery}T23:59:59.999-05:00`);
 
         const [actividadesDelDia, valesDelDia] = await Promise.all([
             Actividad.findAll({
-                where: { createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, vales: null },
+                where: { 
+                    createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, 
+                    vales: null,
+                    estado: 'Realizada' 
+                },
                 include: [Precio, FormaDePago]
             }),
             Actividad.findAll({
-                where: { createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, vales: { [Op.ne]: null } }
+                where: { 
+                    createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, 
+                    vales: { [Op.ne]: null } 
+                }
             })
         ]);
+
+        if (actividadesDelDia.length === 0 && valesDelDia.length === 0) {
+            return res.redirect(`/mis-actividades?mensaje=No hay actividades o vales para cerrar en la fecha seleccionada.`);
+        }
 
         let totalEfectivo = 0, totalDatafono = 0, totalTransferencia = 0;
         const totalVales = valesDelDia.reduce((total, vale) => total + parseFloat(vale.vales), 0);
 
         actividadesDelDia.forEach(actividad => {
             const monto = parseFloat(actividad.precio?.monto || 0);
-            const formaDePago = actividad.formas_de_pago?.nombre;
+            const formaDePago = actividad.formas_de_pago?.nombre || 'Efectivo';
 
             if (formaDePago === 'Efectivo') totalEfectivo += monto;
             else if (formaDePago === 'Datafono') totalDatafono += monto;
