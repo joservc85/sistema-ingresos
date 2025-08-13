@@ -1,6 +1,7 @@
 import { check, validationResult } from 'express-validator';
-import { Op } from 'sequelize'; // Asegúrate de importar Op de sequelize
-import { Proveedor } from '../models/index.js';
+import { Op } from 'sequelize';
+import db from '../config/db.js';
+import { Proveedor, Auditoria } from '../models/index.js';
 
 
 // Mostrar listado de Proveedores
@@ -83,9 +84,10 @@ const crear = async (req, res) => {
   }
 
   const { tipo_documento, numero_documento, razon_social, email, prefijo_telefono, telefono } = req.body;
-
+  const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
   const telefono_completo = `${prefijo_telefono}${telefono}`;
 
+  const t = await db.transaction();
   try {
     const existeProveedor = await Proveedor.findOne({
       where: {
@@ -93,7 +95,8 @@ const crear = async (req, res) => {
           { numero_documento: numero_documento },
           { razon_social: razon_social }
         ]
-      }
+      },
+      transaction: t
     });
 
     if (existeProveedor) {
@@ -107,19 +110,37 @@ const crear = async (req, res) => {
       });
     }
 
-    await Proveedor.create({
+    const nuevoProveedor = await Proveedor.create({
       tipo_documento,
       numero_documento,
       razon_social,
       email,
       telefono: telefono_completo,
       activo: true
-    });
-    return res.redirect('/proveedor/leer?guardado=1');
+    }, { transaction: t });
+
+    // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+    await Auditoria.create({
+      accion: 'CREAR',
+      tabla_afectada: 'proveedores',
+      registro_id: nuevoProveedor.id,
+      descripcion: `El usuario ${nombreUsuario} creó al proveedor: ${razon_social}.`,
+      usuarioId
+    }, { transaction: t });
+
+    await t.commit();
+    return res.redirect('/proveedor/leer?mensaje=Proveedor Creado Correctamente');
   } catch (error) {
+    await t.rollback();
     console.error('Error al crear proveedor:', error);
-    // Puedes añadir un manejo más específico para errores de base de datos
-    return res.redirect('/proveedor/leer?error=1');
+    return res.render('proveedor/crear', {
+      pagina: 'Crear Proveedor',
+      csrfToken: req.csrfToken(),
+      barra: true,
+      piePagina: true,
+      errores: [{ msg: error.message || 'Hubo un error al registrar el proveedor.' }],
+      proveedor: req.body
+    });
   }
 };
 
@@ -159,6 +180,7 @@ const editar = async (req, res) => {
 // Procesar Edición
 const actualizar = async (req, res) => {
   const { id } = req.params;
+  const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
   // Validaciones para Proveedor adaptadas a Colombia
   await check('tipo_documento')
@@ -209,12 +231,13 @@ const actualizar = async (req, res) => {
   }
 
   const telefono_completo = `${prefijo_telefono}${telefono}`;
+  const estaActivo = (activo === 'on' || activo === true);
 
+  const t = await db.transaction();
   try {
-    const proveedor = await Proveedor.findByPk(id);
-
+    const proveedor = await Proveedor.findByPk(id, { transaction: t });
     if (!proveedor) {
-      return res.redirect('/proveedor/leer');
+      throw new Error('Proveedor no encontrado.');
     }
 
     const existeOtroProveedor = await Proveedor.findOne({
@@ -224,7 +247,8 @@ const actualizar = async (req, res) => {
           { razon_social: razon_social }
         ],
         id: { [Op.ne]: id }
-      }
+      },
+      transaction: t
     });
 
     if (existeOtroProveedor) {
@@ -247,16 +271,26 @@ const actualizar = async (req, res) => {
       });
     }
 
+    await Auditoria.create({
+      accion: 'MODIFICAR',
+      tabla_afectada: 'proveedores',
+      registro_id: id,
+      descripcion: `El usuario ${nombreUsuario} actualizó los datos del proveedor: ${proveedor.razon_social}.`,
+      usuarioId
+    }, { transaction: t });
+
+    // Actualizar los campos
     proveedor.tipo_documento = tipo_documento;
     proveedor.numero_documento = numero_documento;
     proveedor.razon_social = razon_social;
     proveedor.email = email;
     proveedor.telefono = telefono_completo;
-    proveedor.activo = activo === 'on';
+    proveedor.activo = estaActivo;
 
-    await proveedor.save();
+    await proveedor.save({ transaction: t });
 
-    return res.redirect('/proveedor/leer?actualizado=1');
+    await t.commit();
+    return res.redirect('/proveedor/leer?mensaje=Proveedor actualizado correctamente');
   } catch (error) {
     console.error('Error al actualizar proveedor:', error);
     return res.render('proveedores/editar', {
@@ -281,27 +315,32 @@ const actualizar = async (req, res) => {
 
 const eliminar = async (req, res) => {
   const { id } = req.params;
+  const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
   if (req.usuario.role.nombre !== 'Admin') {
     return res.status(403).send('No tienes permiso para eliminar este vale');
   }
 
+  const t = await db.transaction();
   try {
-    const proveedor = await Proveedor.findByPk(id);
-
+    const proveedor = await Proveedor.findByPk(id, { transaction: t });
     if (!proveedor) {
-      return res.status(404).send('Registro de proveedor no encontrado');
+      throw new Error('Proveedor no encontrado.');
     }
 
-    // Antes de eliminar, considera si hay gastos_adicionales asociados a este proveedor.
-    // Si hay una relación de clave foránea configurada con ON DELETE RESTRICT o NO ACTION,
-    // la base de datos podría impedir la eliminación.
-    // Si quieres permitir la eliminación, la relación en tu modelo Proveedor (o GastoAdicional)
-    // debe tener ON DELETE SET NULL o CASCADE.
+    // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+    await Auditoria.create({
+      accion: 'ELIMINAR',
+      tabla_afectada: 'proveedores',
+      registro_id: id,
+      descripcion: `El usuario ${nombreUsuario} eliminó al proveedor: ${proveedor.razon_social}.`,
+      usuarioId
+    }, { transaction: t });
 
-    await proveedor.destroy();
+    await proveedor.destroy({ transaction: t });
 
-    return res.redirect('/proveedor/leer?eliminado=1');
+    await t.commit();
+    return res.redirect('/proveedor/leer?mensaje=Proveedor eliminado correctamente.');
   } catch (error) {
     console.error('Error al eliminar proveedor:', error);
     // Puedes verificar si el error es por una restricción de clave foránea

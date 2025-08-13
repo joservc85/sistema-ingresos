@@ -26,6 +26,8 @@ import ropaRoutes from './routes/ropaRoutes.js';
 import ventaRopaRoutes from './routes/ventaRopaRoutes.js';
 import cierreCajaRoutes from './routes/cierreCajaRoutes.js';
 import auditoriaRoutes from './routes/auditoriaRoutes.js';
+import reportesRoutes from './routes/reportesRoutes.js';
+import perfilRoutes from './routes/perfilRoutes.js';
 
 // Importación de la Base de Datos
 import db from './config/db.js'
@@ -93,6 +95,8 @@ app.use('/inventario', inventarioRoutes);
 app.use('/inventario/ropa', ropaRoutes);
 app.use('/ventas/ropa', ventaRopaRoutes);
 app.use('/cierre-caja', cierreCajaRoutes);
+app.use('/reportes', reportesRoutes);
+app.use('/perfil', perfilRoutes);
 
 // --- 6. MANEJADOR DE ERRORES 404 ---
 app.use((req, res) => {

@@ -1,6 +1,7 @@
 import { check, validationResult } from 'express-validator'
-import { Op } from 'sequelize'; // Importar Op para la búsqueda
-import Cliente from '../models/Cliente.js'
+import { Op } from 'sequelize';
+import db from '../config/db.js'; 
+import { Cliente, Auditoria} from '../models/index.js'
 
 // Mostrar listado de clientes con búsqueda y paginación
 const leer = async (req, res) => {
@@ -14,7 +15,7 @@ const leer = async (req, res) => {
         whereClause[Op.or] = [
             { nombre: { [Op.like]: `%${busqueda}%` } },
             { apellidos: { [Op.like]: `%${busqueda}%` } },
-            { cedula: { [Op.like]: `%${busqueda}%` } }, 
+            { cedula: { [Op.like]: `%${busqueda}%` } },
             { email: { [Op.like]: `%${busqueda}%` } },
             { instagram: { [Op.like]: `%${busqueda}%` } }
         ];
@@ -38,7 +39,7 @@ const leer = async (req, res) => {
         query: req.query,
         paginaActual: Number(page),
         totalPaginas,
-        busqueda // Pasar la búsqueda a la vista para rellenar el input
+        busqueda 
     });
 }
 
@@ -62,8 +63,6 @@ const crear = async (req, res) => {
     await check('telefono').notEmpty().withMessage('El número de teléfono es obligatorio').isNumeric().withMessage('El número de teléfono solo debe contener dígitos')
         .isLength({ min: 7, max: 7 }).withMessage('El número de teléfono debe tener 7 dígitos').run(req);
     await check('prefijo_telefono').notEmpty().withMessage('El prefijo del teléfono es obligatorio').run(req);
-    
-    // --- VALIDACIONES NUEVAS AÑADIDAS ---
     await check('tipo').notEmpty().withMessage('El tipo de cliente es obligatorio').run(req);
 
     const resultado = validationResult(req)
@@ -75,13 +74,13 @@ const crear = async (req, res) => {
             piePagina: true,
             csrfToken: req.csrfToken(),
             errores: resultado.array(),
-            cliente: req.body // Se devuelven todos los datos, incluyendo los nuevos
+            cliente: req.body
         })
     }
-
-    // --- NUEVOS CAMPOS EXTRAÍDOS ---
+    
     const { nombre, apellidos, email, prefijo_telefono, telefono, instagram, tipo, cedula } = req.body
     const telefono_completo = `${prefijo_telefono}${telefono}`;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario; 
 
     // Verificar si el email ya existe (solo si se proporcionó uno)
     if (email) {
@@ -98,19 +97,31 @@ const crear = async (req, res) => {
         }
     }
 
+    const t = await db.transaction();
     try {
-        // --- NUEVOS CAMPOS GUARDADOS ---
-        await Cliente.create({ nombre, apellidos, cedula, email, telefono: telefono_completo, instagram, tipo }) 
-        return res.redirect('/cliente/leer?mensaje=Cliente Creado Correctamente'); 
+        const nuevoCliente = await Cliente.create({
+            nombre, apellidos, cedula, email, telefono: telefono_completo, instagram, tipo
+        }, { transaction: t });
+
+        await Auditoria.create({
+            accion: 'CREAR',
+            tabla_afectada: 'clientes',
+            registro_id: nuevoCliente.id,
+            descripcion: `El usuario ${nombreUsuario} creó al cliente: ${nombre} ${apellidos}.`,
+            usuarioId
+        }, { transaction: t });
+
+        await t.commit();
+        return res.redirect('/cliente/leer?mensaje=Cliente Creado Correctamente');
     } catch (error) {
         console.log(error);
-        return res.render('cliente/crear', { 
-            pagina: 'Crear Cliente', 
+        return res.render('cliente/crear', {
+            pagina: 'Crear Cliente',
             csrfToken: req.csrfToken(),
             barra: true,
             piePagina: true,
-            errores: [{ msg: 'Hubo un error al registrar el cliente. Intente de nuevo.' }], 
-            cliente: req.body 
+            errores: [{ msg: 'Hubo un error al registrar el cliente. Intente de nuevo.' }],
+            cliente: req.body
         });
     }
 }
@@ -118,21 +129,21 @@ const crear = async (req, res) => {
 // Mostrar Formulario de Edición de Cliente
 const editar = async (req, res) => {
     const { id } = req.params;
-    const cliente = await Cliente.findByPk(id); 
+    const cliente = await Cliente.findByPk(id);
 
-    if (!cliente) { 
-        return res.redirect('/cliente/leer'); 
+    if (!cliente) {
+        return res.redirect('/cliente/leer');
     }
 
-    const telefonoCompleto = cliente.telefono || ''; 
+    const telefonoCompleto = cliente.telefono || '';
     const prefijo_telefono = telefonoCompleto.slice(0, 3);
     const telefono = telefonoCompleto.slice(3);
 
-    res.render('cliente/editar', { 
-        pagina: `Editar Cliente: ${cliente.nombre} ${cliente.apellidos}`, 
+    res.render('cliente/editar', {
+        pagina: `Editar Cliente: ${cliente.nombre} ${cliente.apellidos}`,
         csrfToken: req.csrfToken(),
-        cliente: { 
-            ...cliente.dataValues, // Se pasan todos los datos del cliente
+        cliente: {
+            ...cliente.dataValues,
             prefijo_telefono,
             telefono
         },
@@ -156,10 +167,10 @@ const actualizar = async (req, res) => {
     await check('tipo').notEmpty().withMessage('El tipo de cliente es obligatorio').run(req);
 
     const resultado = validationResult(req);
-    
+
     if (!resultado.isEmpty()) {
-        return res.render('cliente/editar', { 
-            pagina: 'Editar Cliente', 
+        return res.render('cliente/editar', {
+            pagina: 'Editar Cliente',
             csrfToken: req.csrfToken(),
             barra: true,
             piePagina: true,
@@ -171,52 +182,77 @@ const actualizar = async (req, res) => {
     const { nombre, apellidos, email, prefijo_telefono, telefono, activo, instagram, tipo, cedula } = req.body;
     const telefono_completo = `${prefijo_telefono}${telefono}`;
     const estaActivo = (activo === 'on' || activo === true);
-
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario; 
+  
+    const t = await db.transaction();
     try {
-        const cliente = await Cliente.findByPk(id); 
-
+        const cliente = await Cliente.findByPk(id, { transaction: t }); 
         if (!cliente) { 
-            return res.redirect('/cliente/leer'); 
+            throw new Error('Cliente no encontrado');
         }
 
+        await Auditoria.create({
+            accion: 'MODIFICAR',
+            tabla_afectada: 'clientes',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} actualizó los datos del cliente: ${cliente.nombre} ${cliente.apellidos}.`,
+            usuarioId
+        }, { transaction: t });
+
         // Actualizar los campos del cliente
-        cliente.nombre = nombre; 
+        cliente.nombre = nombre;
         cliente.apellidos = apellidos;
         cliente.cedula = cedula;
-        cliente.email = email; 
+        cliente.email = email;
         cliente.telefono = telefono_completo;
         cliente.activo = estaActivo;
-        // --- NUEVOS CAMPOS ACTUALIZADOS ---
         cliente.instagram = instagram;
         cliente.tipo = tipo;
 
-        await cliente.save(); 
-
+        await cliente.save({ transaction: t }); 
+        await t.commit();
         return res.redirect('/cliente/leer?mensaje=Cliente Actualizado Correctamente'); 
     } catch (error) {
         console.log(error);
-        // ... tu manejo de errores ...
+        return res.render('cliente/editar', {
+            pagina: 'Modificar Cliente',
+            csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
+            errores: [{ msg: 'Hubo un error al registrar el cliente. Intente de nuevo.' }],
+            cliente: req.body
+        });
     }
 };
 
 // Eliminar un cliente
 const eliminar = async (req, res) => {
     const { id } = req.params;
-    
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
+
     if (req.usuario.role.nombre !== 'Admin' && req.usuario.role.nombre !== 'Supervisor') {
         return res.status(403).send('No tienes permiso para eliminar este cliente');
     }
 
+    const t = await db.transaction();
     try {
-        const cliente = await Cliente.findByPk(id); 
-
+        const cliente = await Cliente.findByPk(id, { transaction: t }); 
         if (!cliente) { 
-            return res.status(404).send('Registro no encontrado');
+            throw new Error('Cliente no encontrado');
         }
+        await Auditoria.create({
+            accion: 'ELIMINAR',
+            tabla_afectada: 'clientes',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} eliminó al cliente: ${cliente.nombre} ${cliente.apellidos}.`,
+            usuarioId
+        }, { transaction: t });
 
-        await cliente.destroy(); 
-
+        await cliente.destroy({ transaction: t }); 
+        
+        await t.commit();
         return res.redirect('/cliente/leer?mensaje=Cliente Eliminado Correctamente'); 
+
     } catch (error) {
         console.error(error);
         return res.status(500).send('Error al eliminar');

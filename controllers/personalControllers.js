@@ -1,6 +1,7 @@
 import { check, validationResult } from 'express-validator'
-import Personal from '../models/Personal.js'
-import { Op } from 'sequelize' // asegúrate de importar tu modelo
+import { Personal, Auditoria } from '../models/index.js'
+import { Op } from 'sequelize'
+import db from '../config/db.js';
 
 
 // Mostrar listado del personal
@@ -81,10 +82,10 @@ const crear = async (req, res) => {
   }
 
   const { nombre, apellidos, email, prefijo_telefono, telefono } = req.body
-
   const telefono_completo = `${prefijo_telefono}${telefono}`;
-
   const existe = await Personal.findOne({ where: { email } })
+  const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
+
   if (existe) {
     return res.render('personal/crear', {
       pagina: 'Crear Personal',
@@ -102,12 +103,33 @@ const crear = async (req, res) => {
     })
   }
 
+  const t = await db.transaction();
   try {
-    await Personal.create({ nombre, apellidos, email, telefono: telefono_completo })
-    return res.redirect('/personal/leer?guardado=1');
+    const nuevoPersonal = await Personal.create({
+      nombre, apellidos, email, telefono: telefono_completo
+    }, { transaction: t });
+
+    await Auditoria.create({
+      accion: 'CREAR',
+      tabla_afectada: 'clientes',
+      registro_id: nuevoPersonal.id,
+      descripcion: `El usuario ${nombreUsuario} creó al personal: ${nombre} ${apellidos}.`,
+      usuarioId
+    }, { transaction: t });
+    await t.commit();
+
+    return res.redirect('/personal/leer?guardado=Personal Creado Correctamente');
+
   } catch (error) {
     console.log(error);
-    return res.redirect('/personal/leer?error=1');
+    return res.render('personal/crear', {
+      pagina: 'Crear Personal',
+      csrfToken: req.csrfToken(),
+      barra: true,
+      piePagina: true,
+      errores: [{ msg: 'Hubo un error al registrar el Personal. Intente de nuevo.' }],
+      personal: req.body
+    });
   }
 }
 
@@ -157,6 +179,8 @@ const actualizar = async (req, res) => {
     activo
   } = req.body;
 
+  const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
+
   // Validaciones
   await check('nombre').notEmpty().withMessage('El nombre es obligatorio').run(req);
   await check('apellidos').notEmpty().withMessage('Los apellidos son obligatorios').run(req);
@@ -200,24 +224,19 @@ const actualizar = async (req, res) => {
   const telefono_completo = `${prefijo_telefono}${telefono}`;
   const estaActivo = (activo === 'on' || activo === true);
 
+  const t = await db.transaction();
   try {
-    const personal = await Personal.findByPk(id);
-
+    const personal = await Personal.findByPk(id, { transaction: t });
     if (!personal) {
-      // Si el personal no se encuentra, redirige.
-      // Aquí podrías usar un query param para error si lo tienes configurado en leer.pug
-      return res.redirect('/personal/leer'); // O '/personal/leer?error=personal_no_encontrado'
+      throw new Error('Personal no encontrado.');
     }
 
     const existeOtroPersonalConMismoEmail = await Personal.findOne({
-      where: {
-        email: email,
-        id: { [Op.ne]: id }
-      }
+      where: { email: email, id: { [Op.ne]: id } },
+      transaction: t
     });
 
     if (existeOtroPersonalConMismoEmail) {
-      // Si el email ya está en uso por otro personal, renderiza con error
       return res.render('personal/editar', {
         pagina: 'Editar Personal',
         csrfToken: req.csrfToken(),
@@ -236,6 +255,15 @@ const actualizar = async (req, res) => {
       });
     }
 
+    // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+    await Auditoria.create({
+      accion: 'MODIFICAR',
+      tabla_afectada: 'personals',
+      registro_id: id,
+      descripcion: `El usuario ${nombreUsuario} actualizó los datos del personal: ${personal.nombre} ${personal.apellidos}.`,
+      usuarioId
+    }, { transaction: t });
+
     // Actualizar los campos del modelo de Personal
     personal.nombre = nombre;
     personal.apellidos = apellidos;
@@ -243,16 +271,14 @@ const actualizar = async (req, res) => {
     personal.telefono = telefono_completo;
     personal.activo = estaActivo;
 
-    // Guardar los cambios en la base de datos
-    await personal.save();
+    await personal.save({ transaction: t });
 
-    // *** Redirigir con el query parameter 'actualizado=1' para el SweetAlert ***
-    return res.redirect('/personal/leer?actualizado=1');
+    await t.commit();
+    return res.redirect('/personal/leer?mensaje=Personal actualizado correctamente');
 
   } catch (error) {
     console.error('Error al actualizar personal:', error);
-    // En caso de un error interno del servidor al actualizar, puedes redirigir con un error genérico
-    // O puedes renderizar la página de edición nuevamente con un mensaje de error genérico
+
     return res.render('personal/editar', {
       pagina: 'Editar Personal',
       csrfToken: req.csrfToken(),
@@ -274,21 +300,33 @@ const actualizar = async (req, res) => {
 
 const eliminar = async (req, res) => {
   const { id } = req.params;
+  const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
   if (req.usuario.role.nombre !== 'Admin') {
-      return res.status(403).send('No tienes permiso para eliminar este vale');
-    }
+    return res.status(403).send('No tienes permiso para eliminar este vale');
+  }
 
+  const t = await db.transaction();
   try {
-    const persona = await Personal.findByPk(id);
-
-    if (!persona) {
-      return res.status(404).send('Registro no encontrado');
+    const personal = await Personal.findByPk(id, { transaction: t });
+    if (!personal) {
+      throw new Error('Personal no encontrado.');
     }
 
-    await persona.destroy();
+    // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+    await Auditoria.create({
+      accion: 'ELIMINAR',
+      tabla_afectada: 'personals',
+      registro_id: id,
+      descripcion: `El usuario ${nombreUsuario} eliminó al miembro del personal: ${personal.nombre} ${personal.apellidos}.`,
+      usuarioId
+    }, { transaction: t });
 
-    return res.redirect('/personal/leer?eliminado=1');
+    await personal.destroy({ transaction: t });
+
+    await t.commit();
+    return res.redirect('/personal/leer?mensaje=Personal eliminado correctamente.');
+
   } catch (error) {
     console.error(error);
     return res.status(500).send('Error al eliminar');

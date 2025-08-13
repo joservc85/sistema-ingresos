@@ -1,7 +1,8 @@
 // controllers/articulosController.js
-import { Articulo, CategoriaArticulo, UnidadDeMedida } from '../models/index.js';
+import { Articulo, CategoriaArticulo, UnidadDeMedida, Auditoria } from '../models/index.js';
 import { check, validationResult } from 'express-validator';
 import { Op } from 'sequelize';
+import db from '../config/db.js';
 
 // Muestra la lista de todos los artículos con paginación
 const leerArticulos = async (req, res) => {
@@ -92,25 +93,17 @@ const formularioCrearArticulo = async (req, res) => {
 
 // Registrar Articulo
 const crearArticulo = async (req, res) => {
-    // 1. Definimos las validaciones para todos los campos
+    // 1. Definimos las validaciones
     await check('nombre_articulo').notEmpty().withMessage('El nombre del artículo es obligatorio').run(req);
     await check('categoriaId').notEmpty().withMessage('Debes seleccionar una categoría').run(req);
-    await check('unidad_medida_Id').notEmpty().withMessage('Debes seleccionar una unidad de medida').run(req); // <-- VALIDACIÓN AÑADIDA
-    await check('stock_minimo')
-        .optional({ checkFalsy: true })
-        .isInt({ min: 0 }).withMessage('El stock mínimo debe ser un número entero no negativo')
-        .run(req);
-    await check('stock_actual')
-        .optional({ checkFalsy: true })
-        .isDecimal({ decimal_digits: '1,3' }).withMessage('El stock actual debe ser un número válido') // <-- VALIDACIÓN CORREGIDA
-        .custom(value => value >= 0).withMessage('El stock actual no puede ser negativo')
-        .run(req);
+    await check('unidad_medida_Id').notEmpty().withMessage('Debes seleccionar una unidad de medida').run(req);
+    await check('stock_minimo').optional({ checkFalsy: true }).isInt({ min: 0 }).withMessage('El stock mínimo debe ser un número entero no negativo').run(req);
+    await check('stock_actual').optional({ checkFalsy: true }).isDecimal({ decimal_digits: '1,3' }).withMessage('El stock actual debe ser un número válido').custom(value => value >= 0).withMessage('El stock actual no puede ser negativo').run(req);
 
     let resultado = validationResult(req);
 
-    // 2. Si hay errores, volvemos a renderizar el formulario
+    // 2. Si hay errores de validación, volvemos a renderizar el formulario
     if (!resultado.isEmpty()) {
-        // Consultamos los datos necesarios para el formulario una sola vez
         const [categorias, unidades] = await Promise.all([
             CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
             UnidadDeMedida.findAll({ order: [['nombre', 'ASC']] })
@@ -122,40 +115,28 @@ const crearArticulo = async (req, res) => {
             barra: true,
             piePagina: true,
             categorias,
-            unidad_medida: unidades, 
+            unidad_medida: unidades,
             errores: resultado.array(),
             articulo: req.body
         });
     }
 
-    // 3. Desestructuramos los campos del req.body
+    // 3. Desestructuramos los campos y obtenemos el usuario logueado
     const { nombre_articulo, descripcion, unidad_medida_Id, categoriaId, stock_minimo, stock_actual } = req.body;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
+    const t = await db.transaction();
     try {
-        // Verificamos si ya existe un artículo con el mismo nombre
-        const existeArticulo = await Articulo.findOne({ where: { nombre_articulo } });
+        // Verificamos si ya existe un artículo con el mismo nombre dentro de la transacción
+        const existeArticulo = await Articulo.findOne({ where: { nombre_articulo }, transaction: t });
 
         if (existeArticulo) {
-            // Si ya existe, renderizamos el formulario con el error
-            const [categorias, unidades] = await Promise.all([
-                CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
-                UnidadDeMedida.findAll({ order: [['nombre', 'ASC']] })
-            ]);
-
-            return res.render('articulos/crear', {
-                pagina: 'Crear Nuevo Artículo / Concepto',
-                csrfToken: req.csrfToken(),
-                barra: true,
-                piePagina: true,
-                categorias,
-                unidad_medida: unidades,
-                errores: [{ msg: 'Ya existe un artículo o concepto con este nombre.' }],
-                articulo: req.body
-            });
+            // Si existe, lanzamos un error para que lo capture el bloque catch
+            throw new Error('Ya existe un artículo o concepto con este nombre.');
         }
 
         // 4. Creamos el artículo en la base de datos
-        await Articulo.create({
+        const nuevoArticulo = await Articulo.create({
             nombre_articulo,
             descripcion,
             unidad_medida_Id,
@@ -163,14 +144,42 @@ const crearArticulo = async (req, res) => {
             stock_minimo: stock_minimo || 0,
             stock_actual: stock_actual || 0,
             activo: true
-        });
+        }, { transaction: t });
 
-        // Redireccionamos a la lista
-        res.redirect('/articulos/leer?guardado=true');
+        // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+        await Auditoria.create({
+            accion: 'CREAR',
+            tabla_afectada: 'Articulos',
+            registro_id: nuevoArticulo.id,
+            descripcion: `El usuario ${nombreUsuario} creó el artículo: ${nombre_articulo}.`,
+            usuarioId
+        }, { transaction: t });
+
+        await t.commit();
+        res.redirect('/articulos/leer?mensaje=Artículo Creado Correctamente');
 
     } catch (error) {
+        // --- BLOQUE CATCH CORREGIDO ---
+        await t.rollback();
         console.error('Error al crear el artículo:', error);
-        res.status(500).send('Hubo un error al intentar guardar el artículo.');
+
+        // Volvemos a cargar los datos necesarios para el formulario
+        const [categorias, unidades] = await Promise.all([
+            CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
+            UnidadDeMedida.findAll({ order: [['nombre', 'ASC']] })
+        ]);
+
+        // Y renderizamos la vista con el mensaje de error específico
+        res.render('articulos/crear', {
+            pagina: 'Crear Nuevo Artículo / Concepto',
+            csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
+            categorias,
+            unidad_medida: unidades,
+            errores: [{ msg: error.message || 'Hubo un error al guardar el artículo.' }],
+            articulo: req.body
+        });
     }
 };
 
@@ -178,9 +187,9 @@ const crearArticulo = async (req, res) => {
 const formularioEditarArticulo = async (req, res) => {
 
     if (req.usuario.role.nombre !== 'Admin') {
-      return res.status(403).send('No tienes permiso para eliminar este vale');
+        return res.status(403).send('No tienes permiso para eliminar este vale');
     }
-    
+
     const { id } = req.params;
 
     // Ejecuta ambas consultas al mismo tiempo
@@ -224,12 +233,12 @@ const actualizarArticulo = async (req, res) => {
     let resultado = validationResult(req);
     const { id } = req.params;
 
-    // 2. Si hay errores, renderizamos el formulario de nuevo con todos los datos necesarios
+    // 2. Si hay errores de validación, renderizamos el formulario de nuevo
     if (!resultado.isEmpty()) {
         const [categorias, unidades, articulo] = await Promise.all([
             CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
             UnidadDeMedida.findAll({ order: [['nombre', 'ASC']] }),
-            Articulo.findByPk(id) // Necesitamos los datos originales para el título de la página
+            Articulo.findByPk(id)
         ]);
 
         return res.render('articulos/editar', {
@@ -238,94 +247,117 @@ const actualizarArticulo = async (req, res) => {
             barra: true,
             piePagina: true,
             categorias,
-            unidad_medida: unidades, // Pasamos las unidades a la vista con el nombre correcto
+            unidad_medida: unidades,
             errores: resultado.array(),
-            articulo: { id, ...req.body } // Devolvemos los datos que el usuario ya había ingresado
+            articulo: { id, ...req.body }
         });
     }
 
-    // 3. Desestructuramos los campos del req.body
+    // 3. Desestructuramos los campos y obtenemos el usuario logueado
     const { nombre_articulo, descripcion, unidad_medida_Id, categoriaId, stock_minimo, stock_actual, activo } = req.body;
-    
-    // Buscamos el artículo que vamos a actualizar
-    const articulo = await Articulo.findByPk(id);
-    if (!articulo) {
-        return res.redirect('/articulos/leer');
-    }
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
+    const t = await db.transaction();
     try {
+        const articulo = await Articulo.findByPk(id, { transaction: t });
+        if (!articulo) {
+            throw new Error('Artículo no encontrado.');
+        }
+
         // 4. Verificamos que el nombre no esté en uso por OTRO artículo
         const existeOtroArticulo = await Articulo.findOne({
-            where: { nombre_articulo, id: { [Op.ne]: id } }
+            where: { nombre_articulo, id: { [Op.ne]: id } },
+            transaction: t
         });
 
         if (existeOtroArticulo) {
-            const [categorias, unidades] = await Promise.all([
-                CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
-                UnidadDeMedida.findAll({ order: [['nombre', 'ASC']] })
-            ]);
-            return res.render('articulos/editar', {
-                pagina: `Editar: ${articulo.nombre_articulo}`,
-                csrfToken: req.csrfToken(),
-                barra: true,
-                piePagina: true,
-                categorias,
-                unidad_medida: unidades,
-                errores: [{ msg: 'El nombre ya está en uso por otro artículo.' }],
-                articulo: { id, ...req.body }
-            });
+            throw new Error('El nombre ya está en uso por otro artículo.');
         }
 
-        // 5. Actualizamos los datos del artículo con los nuevos campos
+        // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+        await Auditoria.create({
+            accion: 'MODIFICAR',
+            tabla_afectada: 'Articulos',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} actualizó el artículo: ${articulo.nombre_articulo}.`,
+            usuarioId
+        }, { transaction: t });
+
+        // 5. Actualizamos los datos del artículo
         articulo.nombre_articulo = nombre_articulo;
         articulo.descripcion = descripcion;
-        articulo.unidad_medida_Id = unidad_medida_Id; // <-- CAMPO CORREGIDO
+        articulo.unidad_medida_Id = unidad_medida_Id;
         articulo.categoriaId = categoriaId;
         articulo.stock_minimo = stock_minimo || 0;
         articulo.stock_actual = stock_actual || 0;
         articulo.activo = activo === 'on';
 
-        // Guardamos los cambios en la base de datos
-        await articulo.save();
-        res.redirect('/articulos/leer?actualizado=true');
+        await articulo.save({ transaction: t });
+
+        await t.commit();
+        res.redirect('/articulos/leer?mensaje=Artículo actualizado correctamente');
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al actualizar artículo:', error);
-        res.status(500).send('Hubo un error al actualizar los datos.');
+
+        // --- ¡BLOQUE CATCH MEJORADO! ---
+        // Volvemos a cargar los datos necesarios para el formulario
+        const [categorias, unidades] = await Promise.all([
+            CategoriaArticulo.findAll({ order: [['nombre_categoria', 'ASC']] }),
+            UnidadDeMedida.findAll({ order: [['nombre', 'ASC']] })
+        ]);
+
+        // Y renderizamos la vista de edición con el mensaje de error específico
+        return res.render('articulos/editar', {
+            pagina: `Editar Artículo`,
+            csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
+            categorias,
+            unidad_medida: unidades,
+            errores: [{ msg: error.message }], // Pasamos el error específico
+            articulo: { id, ...req.body } // Devolvemos los datos que el usuario ya había ingresado
+        });
     }
 };
 
 // Elimina un artículo de la BD
 const eliminarArticulo = async (req, res) => {
+    const { id } = req.params;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
-    if (req.usuario.role.nombre !== 'Admin') {
-      return res.status(403).send('No tienes permiso para eliminar este vale');
+    if (req.usuario.role.nombre !== 'Admin' && req.usuario.role.nombre !== 'Supervisor') {
+        return res.redirect(`/articulos/leer?error=No tienes permiso para eliminar.`);
     }
 
-    const { id } = req.params;
-
+    const t = await db.transaction();
     try {
-        const articulo = await Articulo.findByPk(id);
+        const articulo = await Articulo.findByPk(id, { transaction: t });
         if (!articulo) {
-            return res.redirect('/articulos/leer');
+            throw new Error('Artículo no encontrado.');
         }
 
-        // Si el artículo está asociado a detalles de gastos, la eliminación fallará
-        // si la clave foránea tiene la restricción por defecto.
-        await articulo.destroy();
-        res.redirect('/articulos/leer?eliminado=true');
+        // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+        await Auditoria.create({
+            accion: 'ELIMINAR',
+            tabla_afectada: 'Articulos',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} eliminó el artículo: ${articulo.nombre_articulo}.`,
+            usuarioId
+        }, { transaction: t });
+
+        await articulo.destroy({ transaction: t });
+
+        await t.commit();
+        return res.redirect('/articulos/leer?mensaje=Artículo eliminado correctamente.');
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al eliminar artículo:', error);
-        // Manejo de error si el artículo no se puede borrar por estar en uso
-        if (error.name === 'SequelizeForeignKeyConstraintError') {
-            // Idealmente, aquí se redirige con un mensaje de error para SweetAlert
-            return res.redirect(`/articulos/leer?error_eliminar=true`);
-        }
-        res.status(500).send('Error al eliminar el artículo.');
+        return res.redirect(`/articulos/leer?error=${encodeURIComponent(error.message)}`);
     }
 };
-
 
 export {
     leerArticulos,

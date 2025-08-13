@@ -7,7 +7,6 @@ const GastoAdicional = db.define('gastos_adicionales', {
     numero_factura: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true, // Una factura debería ser única
         validate: {
             notEmpty: {
                 msg: 'El número de factura no puede ir vacío'

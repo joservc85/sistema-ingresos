@@ -12,7 +12,7 @@ header(class="bg-fuchsia-500 shadow-lg z-40")
 
             //- Contenedor para botones de la derecha
             div(class="flex items-center gap-4")
-                if usuario && usuario.role && (usuario.role.nombre === 'Admin' || usuario.role.nombre === 'Supervisor')
+                if usuario && usuario.role && (usuario.role.nombre === 'Admin' )
                     a(href="/auditoria" title="Historial de Auditoría" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full")
                         i(class="fas fa-history")
                     a(href="/inventario/ropa" title="Inventario de Ropa" class="cursor-pointer flex items-center justify-center bg-white/20 hover:bg-white/30 text-white font-bold h-10 w-10 rounded-full")

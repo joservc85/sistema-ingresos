@@ -164,10 +164,15 @@ const guardarGasto = async (req, res) => {
 
     // Extraemos los datos de la cabecera y los arrays de detalles del request
     const { proveedorId, fecha_gasto, numero_factura, descripcion, articuloId, cantidad, precio_unitario } = req.body;
-    const { id: usuarioId } = req.usuario; // Obtenemos el ID del usuario logueado
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
 
     if (numero_factura) {
-        const facturaExistente = await GastoAdicional.findOne({ where: { numero_factura } });
+        const facturaExistente = await GastoAdicional.findOne({
+            where: {
+                numero_factura: numero_factura,
+                proveedorId: proveedorId
+            }
+        });
         if (facturaExistente) {
             const proveedores = await Proveedor.findAll({ where: { activo: true } });
             return res.render('gastos/crear-gasto', {
@@ -183,95 +188,104 @@ const guardarGasto = async (req, res) => {
         }
     }
 
+    const t = await db.transaction();
     try {
-        // 1. Iniciamos la transacción
-        await db.transaction(async (t) => {
-            // --- Normalizamos los datos y calculamos el total del gasto ---
-            let valor_total = 0;
-            const articulosIds = Array.isArray(req.body.articuloId) ? req.body.articuloId : [req.body.articuloId];
-            const cantidades = Array.isArray(req.body.cantidad) ? req.body.cantidad : [req.body.cantidad];
-            const preciosUnitarios = Array.isArray(req.body.precio_unitario) ? req.body.precio_unitario : [req.body.precio_unitario];
-
-            cantidades.forEach((cant, index) => {
-                if (cant && preciosUnitarios[index]) { // Asegurarse de que hay valores para calcular
-                    valor_total += parseFloat(cant) * parseFloat(preciosUnitarios[index]);
-                }
+        if (numero_factura) {
+            const facturaExistente = await GastoAdicional.findOne({ 
+                where: { numero_factura, proveedorId } 
             });
+            if (facturaExistente) {
+                throw new Error('El número de factura ya está registrado para este proveedor.');
+            }
+        }
+        // --- Normalizamos los datos y calculamos el total del gasto ---
+        let valor_total = 0;
+        const articulosIds = Array.isArray(req.body.articuloId) ? req.body.articuloId : [req.body.articuloId];
+        const cantidades = Array.isArray(req.body.cantidad) ? req.body.cantidad : [req.body.cantidad];
+        const preciosUnitarios = Array.isArray(req.body.precio_unitario) ? req.body.precio_unitario : [req.body.precio_unitario];
 
-            // 2. Guardamos la cabecera del gasto
-            const gasto = await GastoAdicional.create({
-                proveedorId,
-                fecha_gasto,
-                numero_factura,
-                descripcion,
-                valor_total,
-                usuarioId
-            }, { transaction: t });
-
-            // 3. Preparamos y guardamos los detalles
-            const detallesPromises = articulosIds.map(async (id, index) => {
-                if (!id) return; // Omitir filas vacías que no tienen un artículo seleccionado
-
-                const cantidadActual = parseFloat(cantidades[index]);
-                const precioActual = parseFloat(preciosUnitarios[index]);
-                const subtotal = cantidadActual * precioActual;
-
-                // Buscamos el artículo para obtener su categoría
-                const articulo = await Articulo.findByPk(id, { transaction: t });
-
-                if (articulo) {
-                    // =================================================================
-                    // DEBUG: Mostramos la categoría del artículo para verificar
-                    // =================================================================
-                    //console.log(`Verificando artículo: ${articulo.nombre_articulo}, Categoria ID: ${articulo.categoriaId}, Tipo: ${typeof articulo.categoriaId}`);
-
-                    // ¡CONDICIÓN CORREGIDA! Usamos parseInt para evitar problemas de tipo (ej: "1" vs 1)
-                    const categoriasDeInventario = [1, 4];
-
-                    // Comprueba si la categoría del artículo está en el array
-                    if (categoriasDeInventario.includes(parseInt(articulo.categoriaId, 10))) {
-                        console.log(`-> La categoría es ${articulo.categoriaId}. Actualizando stock...`);
-                        const nuevoStock = parseFloat(articulo.stock_actual) + cantidadActual;
-                        await articulo.update({ stock_actual: nuevoStock }, { transaction: t });
-                    } else {
-                        console.log(`-> La categoría ${articulo.categoriaId} NO es de inventario. No se actualiza el stock.`);
-                    }
-                }
-
-                // El detalle del gasto se crea SIEMPRE, sin importar la categoría.
-                return GastoAdicionalDetalle.create({
-                    gastoAdicionalId: gasto.id,
-                    articuloId: id,
-                    cantidad: cantidadActual,
-                    precio_unitario: precioActual,
-                    subtotal
-                }, { transaction: t });
-            });
-
-            // Ejecutamos todas las promesas de guardado de detalles
-            await Promise.all(detallesPromises);
+        cantidades.forEach((cant, index) => {
+            if (cant && preciosUnitarios[index]) { // Asegurarse de que hay valores para calcular
+                valor_total += parseFloat(cant) * parseFloat(preciosUnitarios[index]);
+            }
         });
 
-        // 4. Si la transacción fue exitosa, redirigimos
+        // 2. Guardamos la cabecera del gasto
+        const gasto = await GastoAdicional.create({
+            proveedorId,
+            fecha_gasto,
+            numero_factura,
+            descripcion,
+            valor_total,
+            usuarioId
+        }, { transaction: t });
+
+        await Auditoria.create({
+            accion: 'CREAR',
+            tabla_afectada: 'gastos_adicionales',
+            registro_id: gasto.id,
+            descripcion: `El usuario ${nombreUsuario} creó el gasto con factura #${numero_factura || 'N/A'}.`,
+            usuarioId
+        }, { transaction: t });
+
+        // 3. Preparamos y guardamos los detalles
+        const detallesPromises = articulosIds.map(async (id, index) => {
+            if (!id) return; // Omitir filas vacías que no tienen un artículo seleccionado
+
+            const cantidadActual = parseFloat(cantidades[index]);
+            const precioActual = parseFloat(preciosUnitarios[index]);
+            const subtotal = cantidadActual * precioActual;
+
+            // Buscamos el artículo para obtener su categoría
+            const articulo = await Articulo.findByPk(id, { transaction: t });
+
+            if (articulo) {
+    
+                const categoriasDeInventario = [1, 4];
+
+                // Comprueba si la categoría del artículo está en el array
+                if (categoriasDeInventario.includes(parseInt(articulo.categoriaId, 10))) {
+                    console.log(`-> La categoría es ${articulo.categoriaId}. Actualizando stock...`);
+                    const nuevoStock = parseFloat(articulo.stock_actual) + cantidadActual;
+                    await articulo.update({ stock_actual: nuevoStock }, { transaction: t });
+                } else {
+                    console.log(`-> La categoría ${articulo.categoriaId} NO es de inventario. No se actualiza el stock.`);
+                }
+            }
+
+            // El detalle del gasto se crea SIEMPRE, sin importar la categoría.
+            return GastoAdicionalDetalle.create({
+                gastoAdicionalId: gasto.id,
+                articuloId: id,
+                cantidad: cantidadActual,
+                precio_unitario: precioActual,
+                subtotal
+            }, { transaction: t });
+        });
+
+        // Ejecutamos todas las promesas de guardado de detalles
+        await Promise.all(detallesPromises);
+        await t.commit();
         res.redirect('/gastos?guardado=true');
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al guardar el gasto:', error);
-        // Si algo falla, volvemos a renderizar el formulario con un mensaje de error general
         const proveedores = await Proveedor.findAll({ where: { activo: true }, order: [['razon_social', 'ASC']] });
-        res.render('gastos/crear-gasto', {
+        // --- ESTA PARTE ES LA QUE MUESTRA EL ERROR CORRECTAMENTE ---
+        return res.render('gastos/crear-gasto', {
             pagina: 'Registrar Nuevo Gasto',
             csrfToken: req.csrfToken(),
             barra: true,
             piePagina: true,
             proveedores,
-            errorGeneral: [{ msg: 'No se pudo guardar el gasto. Inténtalo de nuevo.' }],
+            // Muestra el mensaje de error específico (ej: "El número de factura ya está registrado...")
+            errores: [{ msg: error.message }],
             datos: req.body,
             formatearMoneda: formatearMoneda
         });
     }
 };
-
 
 // ==================================================================
 // --- Muestra el formulario para editar un gasto existente ---
@@ -472,10 +486,10 @@ const anularGasto = async (req, res) => {
     const t = await db.transaction();
     try {
         const gasto = await GastoAdicional.findByPk(id, {
-            include: [{ 
-                model: GastoAdicionalDetalle, 
-                as: 'gastos_adicionales_detalles', 
-                include: [{ model: Articulo, as: 'articulo' }] 
+            include: [{
+                model: GastoAdicionalDetalle,
+                as: 'gastos_adicionales_detalles',
+                include: [{ model: Articulo, as: 'articulo' }]
             }],
             transaction: t
         });

@@ -1,5 +1,5 @@
 aside#sidebar(class="bg-gray-800 text-gray-300 w-64 min-h-screen fixed md:static transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-50")
-    //- --- CORRECCIÓN: Se añade 'if usuario' para que esta sección solo se muestre si el usuario está logueado ---
+
     if usuario
     div(class="p-4 border-b border-gray-700")
         p(class="font-bold text-lg text-white truncate")= usuario.nombre
@@ -8,12 +8,17 @@ aside#sidebar(class="bg-gray-800 text-gray-300 w-64 min-h-screen fixed md:static
 
     //- Contenedor de enlaces
     nav(class="py-4")
+        div(class="px-4 mb-4")
+            a(href="/perfil" class="flex items-center gap-3 py-2 px-2 rounded-md bg-fuchsia-800 hover:bg-fuchsia-900 text-white transition-colors")
+                i(class="fas fa-user-edit w-5 text-center")
+                span Mi Perfil
         //- Grupo de Facturación
         div(class="px-4 mb-4")
             p(class="text-xs uppercase text-gray-500 font-bold mb-2") Facturación
             a(href="/mis-actividades" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
                 i(class="fas fa-receipt w-5 text-center")
                 span Actividades
+            
             a(href="/cierre-caja" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
                 i(class="fas fa-cash-register w-5 text-center")
                 span Cierre de Caja
@@ -34,7 +39,7 @@ aside#sidebar(class="bg-gray-800 text-gray-300 w-64 min-h-screen fixed md:static
                 a(href="/admin/usuarios" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
                     i(class="fas fa-users-cog w-5 text-center")
                     span Usuarios
-
+            
         //- Grupo de Inventario y Gastos
         div(class="px-4 mb-4")
             p(class="text-xs uppercase text-gray-500 font-bold mb-2") Gestión
@@ -44,3 +49,17 @@ aside#sidebar(class="bg-gray-800 text-gray-300 w-64 min-h-screen fixed md:static
             a(href="/gastos" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
                 i(class="fas fa-file-invoice w-5 text-center")
                 span Gastos
+
+        //- Grupo de Reportes (solo para Admin y Supervisor)
+        if usuario && usuario.role && (usuario.role.nombre === 'Admin')
+            div(class="px-4 mb-4")
+                p(class="text-xs uppercase text-gray-500 font-bold mb-2") Reportes
+                a(href="/reportes/ganancias-perdidas" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
+                    i(class="fas fa-chart-pie w-5 text-center")
+                    span Ganancias y Pérdidas
+                a(href="/reportes/por-personal" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
+                    i(class="fas fa-users-cog w-5 text-center")
+                    span Rendimiento por Personal
+                a(href="/reportes/clientes-frecuentes" class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-gray-700 transition-colors")
+                    i(class="fas fa-star w-5 text-center")
+                    span Top Clientes
