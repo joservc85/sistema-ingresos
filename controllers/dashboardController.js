@@ -53,10 +53,10 @@ const mostrarDashboard = async (req, res) => {
             pagina: 'Panel de Control',
             barra: true,
             piePagina: true,
+            csrfToken: req.csrfToken(),
             totalVentasHoy,
             clientesAtendidosHoy,
             totalValesHoy,
-            // Se pasan los datos del gráfico a la vista
             ventasUltimos7Dias: JSON.stringify(ventasUltimos7Dias),
             etiquetasDias: JSON.stringify(etiquetasDias)
         });
