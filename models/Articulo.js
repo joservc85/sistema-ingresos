@@ -11,11 +11,17 @@ const Articulo = db.define('Articulo', {
             notEmpty: {
                 msg: 'El nombre del artículo no puede ir vacío'
             }
+        },
+        set(value) {
+            this.setDataValue('nombre_articulo', value.toUpperCase());
         }
     },
     descripcion: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
+        set(value) {
+            this.setDataValue('descripcion', value.toUpperCase());
+        }
     },
     // El campo 'unidad_medida' de tipo texto se elimina.
     

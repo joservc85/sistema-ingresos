@@ -1,8 +1,4 @@
-// Reemplaza el contenido de tu archivo: /public/js/pagoActividad.js
-
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DEBUG: Script pagoActividad.js cargado.');
-
     const procedimientoSelect = document.getElementById('procedimientoPrecio');
     const precioDisplay = document.getElementById('precio-procedimiento-display');
     const restanteDisplay = document.getElementById('monto-restante-display');
@@ -10,19 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAgregarPago = document.getElementById('btnAgregarPago');
     const plantillaPago = document.getElementById('plantilla-pago');
 
-    // Verificación de elementos
-    if (!procedimientoSelect) console.error('DEBUG: No se encontró el elemento #procedimientoPrecio');
-    if (!precioDisplay) console.error('DEBUG: No se encontró el elemento #precio-procedimiento-display');
-    if (!pagosContainer) console.error('DEBUG: No se encontró el elemento #pagosContainer');
-    if (!btnAgregarPago) console.error('DEBUG: No se encontró el elemento #btnAgregarPago');
-    if (!plantillaPago) console.error('DEBUG: No se encontró el elemento #plantilla-pago');
-
-    if (!procedimientoSelect || !pagosContainer || !btnAgregarPago || !plantillaPago || !precioDisplay) {
-        console.error('DEBUG: Faltan elementos esenciales. El script no continuará.');
-        return;
-    }
-    
-    console.log('DEBUG: Todos los elementos fueron encontrados. Inicializando lógica.');
+    if (!procedimientoSelect || !pagosContainer || !btnAgregarPago || !plantillaPago) return;
 
     let precioProcedimiento = 0;
 
@@ -51,23 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    procedimientoSelect.addEventListener('change', () => {
-        console.log('DEBUG: ¡El evento "change" del procedimiento fue detectado!');
-        
+    // --- FUNCIÓN MEJORADA PARA ACTUALIZAR EL PRECIO ---
+    const actualizarPrecioProcedimiento = () => {
         const selectedOption = procedimientoSelect.options[procedimientoSelect.selectedIndex];
-        console.log('DEBUG: Opción seleccionada:', selectedOption);
-
-        const precioData = selectedOption.dataset.precio;
-        console.log('DEBUG: Valor de data-precio:', precioData);
-
-        precioProcedimiento = parseFloat(precioData) || 0;
-        console.log('DEBUG: Precio del procedimiento establecido en:', precioProcedimiento);
-
+        if (selectedOption && selectedOption.dataset.precio) {
+            precioProcedimiento = parseFloat(selectedOption.dataset.precio) || 0;
+        } else {
+            precioProcedimiento = 0;
+        }
         precioDisplay.textContent = formatearMoneda(precioProcedimiento);
-        console.log('DEBUG: Texto del display de precio actualizado a:', precioDisplay.textContent);
-
         actualizarCalculos();
-    });
+    };
+
+    procedimientoSelect.addEventListener('change', actualizarPrecioProcedimiento);
 
     const anadirFila = () => {
         const nuevaFila = plantillaPago.content.cloneNode(true);
@@ -110,5 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    anadirFila();
+    // --- INICIALIZACIÓN ---
+    // Añadir la primera fila de pago al cargar la página
+    if (pagosContainer.children.length === 0) {
+        anadirFila();
+    }
+    // Ejecutar la función de actualización de precio al cargar, por si hay un valor preseleccionado
+    actualizarPrecioProcedimiento();
 });

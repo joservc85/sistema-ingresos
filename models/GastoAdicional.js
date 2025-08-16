@@ -11,9 +11,12 @@ const GastoAdicional = db.define('gastos_adicionales', {
             notEmpty: {
                 msg: 'El número de factura no puede ir vacío'
             }
+        },
+        set(value) {
+            this.setDataValue('numero_factura', value.toUpperCase());
         }
     },
-    proveedorId: { 
+    proveedorId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
@@ -27,11 +30,14 @@ const GastoAdicional = db.define('gastos_adicionales', {
         }
     },
     descripcion: {
-        type: DataTypes.TEXT, 
-        allowNull: true 
+        type: DataTypes.TEXT,
+        allowNull: true,
+        set(value) {
+            this.setDataValue('descripcion', value.toUpperCase());
+        }
     },
     valor_total: {
-        type: DataTypes.DECIMAL(10, 2), 
+        type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         validate: {
             isDecimal: {
@@ -43,12 +49,12 @@ const GastoAdicional = db.define('gastos_adicionales', {
             }
         }
     },
-    fecha_gasto: { 
+    fecha_gasto: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: DataTypes.NOW 
+        defaultValue: DataTypes.NOW
     },
-    activo: { 
+    activo: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true

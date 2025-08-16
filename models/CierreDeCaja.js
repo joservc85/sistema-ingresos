@@ -9,8 +9,7 @@ const CierreDeCaja = db.define('cierres_de_caja', {
     },
     fecha_cierre: {
         type: DataTypes.DATEONLY,
-        allowNull: false,
-        unique: true
+        allowNull: false
     },
     estado: {
         type: DataTypes.ENUM('Consolidado', 'Anulado'),

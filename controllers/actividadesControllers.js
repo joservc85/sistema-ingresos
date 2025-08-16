@@ -1,120 +1,120 @@
 import { validationResult } from 'express-validator';
-import { Actividad, DetalleActividad, Personal, Cliente, Procedimiento, Precio, Articulo, FormaDePago, Banco, Auditoria, PagoActividad } from '../models/index.js'
+import { Actividad, DetalleActividad, Personal, Cliente, Procedimiento, Precio, Articulo, FormaDePago, Banco, Auditoria, PagoActividad, CierreDeCaja } from '../models/index.js'
 import db from '../config/db.js';
 import { Op } from 'sequelize';
 
 
 const admin = async (req, res) => {
-  const elementosPorPagina = 4;
-  const paginaActual = Number(req.query.page) || 1;
-  const offset = (paginaActual - 1) * elementosPorPagina;
-  const buscar = req.query.buscar?.toLowerCase() || '';
-  const personalId = req.query.personalId || '';
-  const clienteId = req.query.clienteId || '';
-  const procedimientoId = req.query.procedimientoId || '';
-  const fechaInicio = req.query.fechaInicio || '';
-  const fechaFin = req.query.fechaFin || '';
+    const elementosPorPagina = 10;
+    const paginaActual = Number(req.query.page) || 1;
+    const offset = (paginaActual - 1) * elementosPorPagina;
+    const buscar = req.query.buscar?.toLowerCase() || '';
+    const personalId = req.query.personalId || '';
+    const clienteId = req.query.clienteId || '';
+    const procedimientoId = req.query.procedimientoId || '';
+    const fechaInicio = req.query.fechaInicio || '';
+    const fechaFin = req.query.fechaFin || '';
 
-  // Obtener todas las actividades con relaciones
-  const actividades = await Actividad.findAll({
-    where: { estado: 'Realizada' },
-    include: [Cliente, Personal, Procedimiento, Precio,
-      {
-        model: DetalleActividad,
-        as: 'detalle_actividads',
-        include: [{
-          model: Articulo
-        }]
-      }
-    ],
-    order: [['createdAt', 'DESC']],
-  });
+    // Obtener todas las actividades con relaciones
+    const actividades = await Actividad.findAll({
+        where: { estado: 'Realizada' },
+        include: [Cliente, Personal, Procedimiento, Precio,
+            {
+                model: DetalleActividad,
+                as: 'detalle_actividads',
+                include: [{
+                    model: Articulo
+                }]
+            }
+        ],
+        order: [['createdAt', 'DESC']],
+    });
 
-  const fichas = {};
+    const fichas = {};
 
-  actividades.forEach(act => {
-    const fecha = act.createdAt.toISOString().slice(0, 10);
-    const personal = act.personal?.nombre || 'Sin Personal';
-    const cliente = act.cliente?.nombre || 'Sin Cliente';
-    const procedimiento = act.procedimiento?.nombre || 'Sin Procedimiento';
+    actividades.forEach(act => {
+        const fecha = act.createdAt.toISOString().slice(0, 10);
+        const personal = act.personal?.nombre || 'Sin Personal';
+        const cliente = act.cliente?.nombre || 'Sin Cliente';
+        const procedimiento = act.procedimiento?.nombre || 'Sin Procedimiento';
 
-    // Filtro por búsqueda de nombre de personal
-    if (
-      buscar &&
-      !personal.toLowerCase().includes(buscar) &&
-      !cliente.toLowerCase().includes(buscar) &&
-      !procedimiento.toLowerCase().includes(buscar)
-    ) {
-      return;
+        // Filtro por búsqueda de nombre de personal
+        if (
+            buscar &&
+            !personal.toLowerCase().includes(buscar) &&
+            !cliente.toLowerCase().includes(buscar) &&
+            !procedimiento.toLowerCase().includes(buscar)
+        ) {
+            return;
+        }
+
+        // Filtros específicos por ID
+        if (personalId && String(act.personalId) !== personalId) return;
+        if (clienteId && String(act.clienteId) !== clienteId) return;
+        if (procedimientoId && String(act.procedimientoId) !== procedimientoId) return;
+
+        // Filtro por fecha de inicio y fin
+        if (fechaInicio && fecha < fechaInicio) return;
+        if (fechaFin && fecha > fechaFin) return;
+
+        if (!fichas[fecha]) fichas[fecha] = {};
+        if (!fichas[fecha][personal]) {
+            fichas[fecha][personal] = {
+                actividades: [],
+                vales: [],
+                totalActividades: 0,
+                totalVales: 0
+            };
+        }
+
+        const esVale = !act.clienteId && !act.procedimientoId && !act.precioId && act.vales;
+
+        if (esVale) {
+            fichas[fecha][personal].vales.push(act);
+            fichas[fecha][personal].totalVales += parseFloat(act.vales || 0);
+        } else {
+            fichas[fecha][personal].actividades.push(act);
+            fichas[fecha][personal].totalActividades += parseFloat(act.precio?.monto || 0);
+        }
+    });
+
+    const fichasArray = [];
+    for (const fecha in fichas) {
+        for (const personalNombre in fichas[fecha]) {
+            fichasArray.push({
+                fecha,
+                personal: personalNombre,
+                ...fichas[fecha][personalNombre]
+            });
+        }
     }
 
-    // Filtros específicos por ID
-    if (personalId && String(act.personalId) !== personalId) return;
-    if (clienteId && String(act.clienteId) !== clienteId) return;
-    if (procedimientoId && String(act.procedimientoId) !== procedimientoId) return;
+    fichasArray.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-    // Filtro por fecha de inicio y fin
-    if (fechaInicio && fecha < fechaInicio) return;
-    if (fechaFin && fecha > fechaFin) return;
+    const totalFichas = fichasArray.length;
+    const totalPaginas = Math.ceil(totalFichas / elementosPorPagina);
+    const fichasPaginadas = fichasArray.slice(offset, offset + elementosPorPagina);
 
-    if (!fichas[fecha]) fichas[fecha] = {};
-    if (!fichas[fecha][personal]) {
-      fichas[fecha][personal] = {
-        actividades: [],
-        vales: [],
-        totalActividades: 0,
-        totalVales: 0
-      };
-    }
+    // 🔽 Listas para los filtros desplegables
+    const [personales, clientes, procedimientos] = await Promise.all([
+        Personal.findAll(),
+        Cliente.findAll(),
+        Procedimiento.findAll()
+    ]);
 
-    const esVale = !act.clienteId && !act.procedimientoId && !act.precioId && act.vales;
-
-    if (esVale) {
-      fichas[fecha][personal].vales.push(act);
-      fichas[fecha][personal].totalVales += parseFloat(act.vales || 0);
-    } else {
-      fichas[fecha][personal].actividades.push(act);
-      fichas[fecha][personal].totalActividades += parseFloat(act.precio?.monto || 0);
-    }
-  });
-
-  const fichasArray = [];
-  for (const fecha in fichas) {
-    for (const personalNombre in fichas[fecha]) {
-      fichasArray.push({
-        fecha,
-        personal: personalNombre,
-        ...fichas[fecha][personalNombre]
-      });
-    }
-  }
-
-  fichasArray.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-  const totalFichas = fichasArray.length;
-  const totalPaginas = Math.ceil(totalFichas / elementosPorPagina);
-  const fichasPaginadas = fichasArray.slice(offset, offset + elementosPorPagina);
-
-  // 🔽 Listas para los filtros desplegables
-  const [personales, clientes, procedimientos] = await Promise.all([
-    Personal.findAll(),
-    Cliente.findAll(),
-    Procedimiento.findAll()
-  ]);
-
-  res.render('actividades/admin', {
-    pagina: 'Actividades diarias Damaris Spa',
-    barra: true,
-    piePagina: true,
-    fichas: fichasPaginadas,
-    paginaActual,
-    totalPaginas,
-    query: req.query,
-    personales,
-    clientes,
-    procedimientos,
-    csrfToken: req.csrfToken()
-  });
+    res.render('actividades/admin', {
+        pagina: 'Actividades diarias Damaris Spa',
+        barra: true,
+        piePagina: true,
+        fichas: fichasPaginadas,
+        paginaActual,
+        totalPaginas,
+        query: req.query,
+        personales,
+        clientes,
+        procedimientos,
+        csrfToken: req.csrfToken()
+    });
 };
 
 // Mostrar formulario para crear una nueva Actividad
@@ -122,13 +122,13 @@ const crear = async (req, res) => {
     // --- CONSULTA ACTUALIZADA ---
     // Ahora también traemos las formas de pago y los bancos
     const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
-        Personal.findAll({ 
-          where: { activo: true },
-          order: [['nombre', 'ASC']] 
+        Personal.findAll({
+            where: { activo: true },
+            order: [['nombre', 'ASC']]
         }),
-        Cliente.findAll({ 
+        Cliente.findAll({
             where: { activo: true, tipo: { [Op.in]: ['Spa', 'Ambos'] } },
-            order: [['nombre', 'ASC']] 
+            order: [['nombre', 'ASC']]
         }),
         Procedimiento.findAll({
             include: {
@@ -144,8 +144,8 @@ const crear = async (req, res) => {
             },
             order: [['nombre_articulo', 'ASC']]
         }),
-        FormaDePago.findAll(), 
-        Banco.findAll()       
+        FormaDePago.findAll(),
+        Banco.findAll()
     ]);
 
     res.render('actividades/crear', {
@@ -157,12 +157,13 @@ const crear = async (req, res) => {
         clientes,
         procedimientos,
         articulos,
-        formasDePago, 
-        bancos,       
+        formasDePago,
+        bancos,
         datos: {}
     });
 }
 
+// Guardar Actividad
 const guardar = async (req, res) => {
 
     // --- 1. VALIDACIÓN DE CAMPOS OBLIGATORIOS (con express-validator) ---
@@ -198,7 +199,7 @@ const guardar = async (req, res) => {
             articuloId = [articuloId];
             cantidad = [cantidad];
         }
-        
+
         if (articuloId && Array.isArray(articuloId)) {
             for (let i = 0; i < articuloId.length; i++) {
                 const idDelArticulo = articuloId[i];
@@ -229,103 +230,121 @@ const guardar = async (req, res) => {
         return res.render('actividades/crear', {
             pagina: 'Crear Actividad',
             csrfToken: req.csrfToken(),
+            barra: true,
+            piePagina: true,
             personals, clientes, procedimientos, articulos, formasDePago, bancos,
             errores: erroresDeStock,
             datos: req.body
         });
     }
 
-    // --- 4. SI TODAS LAS VALIDACIONES PASAN, PROCEDER A GUARDAR CON UNA TRANSACCIÓN ---
-    const t = await db.transaction();
     try {
-        // --- CORRECCIÓN: Extraer todos los campos, incluyendo 'referencia_pago' ---
-        const { personal, cliente, procedimiento, precio, vales, descripcion } = req.body;
-
-        const { id: usuarioId } = req.usuario;
-
-        // Datos de los pagos múltiples
-        let { formaDePagoId, monto, bancoId, referencia_pago } = req.body;
-
-        // Caso A: Guardar solo un Vale
-        if (soloVales === 'on') {
-            await Actividad.create({
-                personalId: personal,
-                vales,
-                descripcion,
-                usuarioId
-            }, { transaction: t });
-        
-        // Caso B: Guardar una Actividad completa
-        } else {
-            // --- 3.A. Validar que la suma de los pagos coincida con el precio ---
-            const precioProcedimiento = await Precio.findByPk(precio);
-            if (!precioProcedimiento) {
-                throw new Error('El precio del procedimiento no es válido.');
+        const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+        const cierreExistente = await CierreDeCaja.findOne({
+            where: {
+                fecha_cierre: fechaHoy,
+                estado: 'Consolidado'
             }
+        });
 
-            // Normalizar los montos para que siempre sean un array
-            if (monto && !Array.isArray(monto)) {
-                monto = [monto];
-            }
-            const totalPagado = monto.reduce((total, m) => total + (parseFloat(m.replace(/[^0-9]/g, '')) || 0), 0);
-
-            if (totalPagado !== parseFloat(precioProcedimiento.monto)) {
-                throw new Error(`La suma de los pagos ($${totalPagado.toLocaleString('es-CO')}) no coincide con el precio del procedimiento ($${parseFloat(precioProcedimiento.monto).toLocaleString('es-CO')}).`);
-            }
-
-            const nuevaActividad = await Actividad.create({
-                personalId: personal,
-                clienteId: cliente,
-                procedimientoId: procedimiento,
-                precioId: precio,
-                usuarioId
-            }, { transaction: t });
-
-            // --- 3.C. Crear los registros de pago en la nueva tabla ---
-            if (formaDePagoId && Array.isArray(formaDePagoId)) {
-                const pagosParaGuardar = [];
-                for (let i = 0; i < formaDePagoId.length; i++) {
-                    if (formaDePagoId[i]) {
-                        pagosParaGuardar.push({
-                            monto: parseFloat(monto[i].replace(/[^0-9]/g, '')) || 0,
-                            actividadId: nuevaActividad.id,
-                            formaDePagoId: formaDePagoId[i],
-                            bancoId: bancoId[i] || null,
-                            referencia_pago: referencia_pago[i] || null
-                        });
-                    }
-                }
-                await PagoActividad.bulkCreate(pagosParaGuardar, { transaction: t });
-            }
-
-            // Bucle para guardar detalles y actualizar stock (sin cambios)
-            if (articuloId && Array.isArray(articuloId)) {
-                for (let i = 0; i < articuloId.length; i++) {
-                    const idDelArticulo = articuloId[i];
-                    const cantidadUsada = parseFloat(cantidad[i]);
-
-                    if (idDelArticulo && cantidadUsada > 0) {
-                        const articulo = await Articulo.findByPk(idDelArticulo, { transaction: t });
-                        articulo.stock_actual -= cantidadUsada;
-                        await articulo.save({ transaction: t });
-
-                        await DetalleActividad.create({
-                            actividadId: nuevaActividad.id,
-                            articuloId: idDelArticulo,
-                            cantidad: cantidadUsada
-                        }, { transaction: t });
-                    }
-                }
-            }
+        // Si se encuentra un cierre, se detiene la operación.
+        if (cierreExistente) {
+            throw new Error('La caja para el día de hoy ya ha sido cerrada. No se pueden registrar nuevas actividades.');
         }
 
-        await t.commit();
-        return res.redirect('/mis-actividades?mensaje=Actividad Guardada Correctamente');
+        // --- 4. SI TODAS LAS VALIDACIONES PASAN, PROCEDER A GUARDAR CON UNA TRANSACCIÓN ---
+        const t = await db.transaction();
+        try {
+
+            // --- CORRECCIÓN: Extraer todos los campos, incluyendo 'referencia_pago' ---
+            const { personal, cliente, procedimiento, precio, vales, descripcion } = req.body;
+            const { id: usuarioId } = req.usuario;
+            // Datos de los pagos múltiples
+            let { formaDePagoId, monto, bancoId, referencia_pago } = req.body;
+            // Caso A: Guardar solo un Vale
+            if (soloVales === 'on') {
+                await Actividad.create({
+                    personalId: personal,
+                    vales,
+                    descripcion,
+                    usuarioId
+                }, { transaction: t });
+
+                // Caso B: Guardar una Actividad completa
+            } else {
+                // --- 3.A. Validar que la suma de los pagos coincida con el precio ---
+                const precioProcedimiento = await Precio.findByPk(precio);
+                if (!precioProcedimiento) {
+                    throw new Error('El precio del procedimiento no es válido.');
+                }
+
+                // Normalizar los montos para que siempre sean un array
+                if (monto && !Array.isArray(monto)) {
+                    monto = [monto];
+                }
+                const totalPagado = monto.reduce((total, m) => total + (parseFloat(m.replace(/[^0-9]/g, '')) || 0), 0);
+
+                if (totalPagado !== parseFloat(precioProcedimiento.monto)) {
+                    throw new Error(`La suma de los pagos ($${totalPagado.toLocaleString('es-CO')}) no coincide con el precio del procedimiento ($${parseFloat(precioProcedimiento.monto).toLocaleString('es-CO')}).`);
+                }
+
+                const nuevaActividad = await Actividad.create({
+                    personalId: personal,
+                    clienteId: cliente,
+                    procedimientoId: procedimiento,
+                    precioId: precio,
+                    usuarioId
+                }, { transaction: t });
+
+                // --- 3.C. Crear los registros de pago en la nueva tabla ---
+                if (formaDePagoId && Array.isArray(formaDePagoId)) {
+                    const pagosParaGuardar = [];
+                    for (let i = 0; i < formaDePagoId.length; i++) {
+                        if (formaDePagoId[i]) {
+
+                            pagosParaGuardar.push({
+                                monto: parseFloat(monto[i].replace(/[^0-9]/g, '')) || 0,
+                                actividadId: nuevaActividad.id,
+                                formaDePagoId: formaDePagoId[i],
+                                bancoId: bancoId[i] || null,
+                                referencia_pago: referencia_pago[i] || null
+                            });
+                        }
+                    }
+                    await PagoActividad.bulkCreate(pagosParaGuardar, { transaction: t });
+                }
+
+                // Bucle para guardar detalles y actualizar stock (sin cambios)
+                if (articuloId && Array.isArray(articuloId)) {
+                    for (let i = 0; i < articuloId.length; i++) {
+                        const idDelArticulo = articuloId[i];
+                        const cantidadUsada = parseFloat(cantidad[i]);
+
+                        if (idDelArticulo && cantidadUsada > 0) {
+                            const articulo = await Articulo.findByPk(idDelArticulo, { transaction: t });
+                            articulo.stock_actual -= cantidadUsada;
+                            await articulo.save({ transaction: t });
+
+                            await DetalleActividad.create({
+                                actividadId: nuevaActividad.id,
+                                articuloId: idDelArticulo,
+                                cantidad: cantidadUsada
+                            }, { transaction: t });
+                        }
+                    }
+                }
+            }
+
+            await t.commit();
+            return res.redirect('/mis-actividades?mensaje=Actividad Guardada Correctamente');
+
+        } catch (error) {
+            await t.rollback();
+            throw error; // Lanzar el error para que lo capture el catch principal
+        }
 
     } catch (error) {
-        await t.rollback();
         console.error(error);
-        
         // Recargar datos y renderizar con el error específico
         const [personals, clientes, procedimientos, articulos, formasDePago, bancos] = await Promise.all([
             Personal.findAll({ where: { activo: true } }),
@@ -340,7 +359,7 @@ const guardar = async (req, res) => {
             csrfToken: req.csrfToken(),
             barra: true, piePagina: true,
             personals, clientes, procedimientos, articulos, formasDePago, bancos,
-            errores: [{ msg: error.message }], // Se muestra el error de validación de pago
+            errores: [{ msg: error.message }],
             datos: req.body
         });
     }
@@ -407,33 +426,33 @@ const anularActividad = async (req, res) => {
 };
 
 const eliminarVale = async (req, res) => {
-  const { id } = req.params;
+    const { id } = req.params;
 
-  if (req.usuario.role.nombre !== 'Admin') {
-    return res.status(403).send('No tienes permiso para eliminar este vale');
-  }
+    if (req.usuario.role.nombre !== 'Admin') {
+        return res.status(403).send('No tienes permiso para eliminar este vale');
+    }
 
-  try {
-    await Actividad.destroy({
-      where: {
-        id,
-        clienteId: null,
-        procedimientoId: null,
-        precioId: null
-      }
-    });
+    try {
+        await Actividad.destroy({
+            where: {
+                id,
+                clienteId: null,
+                procedimientoId: null,
+                precioId: null
+            }
+        });
 
-    return res.redirect('/mis-actividades?eliminadoVale=1');
-  } catch (error) {
-    console.log(error);
-    return res.redirect('/mis-actividades?errorVale=1');
-  }
+        return res.redirect('/mis-actividades?eliminadoVale=1');
+    } catch (error) {
+        console.log(error);
+        return res.redirect('/mis-actividades?errorVale=1');
+    }
 };
 
 export {
-  admin,
-  crear,
-  guardar,
-  anularActividad,
-  eliminarVale
+    admin,
+    crear,
+    guardar,
+    anularActividad,
+    eliminarVale
 }

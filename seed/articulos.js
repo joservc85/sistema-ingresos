@@ -29,9 +29,6 @@ const articulos = [
     { id: 35, nombre_articulo: 'AGUJAS', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
     { id: 36, nombre_articulo: 'PAGO SALEM CLIENTA', descripcion: 'Pago recibido de cliente Salem', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 3, unidad_medida_Id: 6 },
     { id: 38, nombre_articulo: 'BASURA', descripcion: 'Servicio de basura', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 2, unidad_medida_Id: 6 },
-    { id: 39, nombre_articulo: 'Tinte rojo', descripcion: null, activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 1, unidad_medida_Id: 1 },
-    { id: 42, nombre_articulo: 'Articulo de prueba', descripcion: 'Articulo de prueba dos', activo: true, stock_minimo: 1, stock_actual: 2.00, categoriaId: 4, unidad_medida_Id: 4 },
-    { id: 43, nombre_articulo: 'prueba de tinte', descripcion: 'tintes para el pelo', activo: true, stock_minimo: 1, stock_actual: 20.00, categoriaId: 1, unidad_medida_Id: 1 }
 ];
 
 export default articulos;

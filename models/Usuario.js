@@ -1,11 +1,14 @@
-import {DataTypes} from 'sequelize'
+import { DataTypes } from 'sequelize'
 import bcrypt from 'bcrypt'
 import db from '../config/db.js'
 
-const Usuario = db.define('usuarios',{
+const Usuario = db.define('usuarios', {
     nombre: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        set(value) {
+            this.setDataValue('nombre', value.toUpperCase());
+        }
     },
     username: {
         type: DataTypes.STRING,
@@ -21,33 +24,33 @@ const Usuario = db.define('usuarios',{
     ///// Nueva logica de usuario/////
     confirmado: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true 
+        defaultValue: true
     },
-},{
-   hooks: {
+}, {
+    hooks: {
         beforeCreate: async function (usuario) {
             const salt = await bcrypt.genSalt(10)
             usuario.password = await bcrypt.hash(usuario.password, salt);
         },
-         beforeUpdate: async function (usuario) {
+        beforeUpdate: async function (usuario) {
             // Comprueba si el campo de la contraseña ha sido modificado
             if (usuario.changed('password')) {
                 const salt = await bcrypt.genSalt(10);
                 usuario.password = await bcrypt.hash(usuario.password, salt);
             }
         }
-   } ,
-   scopes: {
+    },
+    scopes: {
         eliminarPassword: {
             attributes: {
-                exclude: ['password','token','confirmado','createdAt', 'updatedAt']
+                exclude: ['password', 'token', 'confirmado', 'createdAt', 'updatedAt']
             }
         }
-   }
+    }
 })
 
 // Metodos Personalizados
-Usuario.prototype.verificarPassword = function(password) {
+Usuario.prototype.verificarPassword = function (password) {
     return bcrypt.compareSync(password, this.password);
 }
 

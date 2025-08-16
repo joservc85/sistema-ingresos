@@ -1,7 +1,7 @@
 const bancos = [
-    { id: 1, nombre: 'Bancolombia' },
-    { id: 2, nombre: 'Davivienda' },
-    { id: 3, nombre: 'Banco de Bogotá' },
+    { id: 1, nombre: 'BANCOLOMBIA' },
+    { id: 2, nombre: 'DAVIVIENDA' },
+    { id: 3, nombre: 'BANCO DE BOGOTA' },
     { id: 4, nombre: 'BBVA' },
     // ... añade todos los bancos que necesites
 ];

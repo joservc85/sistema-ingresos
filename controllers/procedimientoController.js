@@ -1,6 +1,6 @@
 import { check, validationResult } from 'express-validator';
-import { Op } from 'sequelize';
-import { Procedimiento, Precio } from '../models/index.js'; // Importamos ambos modelos
+import db from '../config/db.js';
+import { Procedimiento, Precio, Auditoria } from '../models/index.js'; // Importamos ambos modelos
 
 // =================================================================
 // FUNCIÓN 1: Mostrar listado de Procedimientos (leer.pug)
@@ -59,13 +59,21 @@ const formularioCrear = async (req, res) => {
 // FUNCIÓN 3: Guardar un nuevo Procedimiento (con la lógica de precio)
 // =================================================================
 const crear = async (req, res) => {
-    // 1. Validación (simple para el nombre)
+    // 1. Validación
     await check('nombre').notEmpty().withMessage('El nombre del procedimiento es obligatorio').run(req);
-    const resultado = validationResult(req);
+    // Validación personalizada para asegurar que se ingrese al menos un precio
+    await check('precioExistente').custom((value, { req }) => {
+        if (!value && !req.body.precioNuevo) {
+            throw new Error('Debes seleccionar un precio existente o ingresar uno nuevo.');
+        }
+        return true;
+    }).run(req);
+    await check('precioNuevo').optional({ checkFalsy: true }).isDecimal().withMessage('El nuevo precio debe ser un número.').run(req);
 
+    const resultado = validationResult(req);
     const { nombre, precioExistente, precioNuevo } = req.body;
 
-    // Si la validación del nombre falla
+    // Si la validación falla
     if (!resultado.isEmpty()) {
         const precios = await Precio.findAll({ order: [['monto', 'ASC']] });
         return res.render('procedimientos/crear', {
@@ -74,58 +82,80 @@ const crear = async (req, res) => {
             barra: true,
             piePagina: true,
             errores: resultado.array(),
-            procedimiento: { nombre }, // Devolvemos el nombre que se escribió
+            procedimiento: { nombre, precioExistente, precioNuevo },
             precios
         });
     }
 
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
+    const t = await db.transaction();
+
     try {
         // 2. Comprobar si ya existe un procedimiento con ese nombre
-        const existeProcedimiento = await Procedimiento.findOne({ where: { nombre } });
+        const existeProcedimiento = await Procedimiento.findOne({ where: { nombre }, transaction: t });
         if (existeProcedimiento) {
-            const precios = await Precio.findAll({ order: [['monto', 'ASC']] });
-            return res.render('procedimientos/crear', {
-                pagina: 'Crear Procedimiento',
-                csrfToken: req.csrfToken(),
-                barra: true, piePagina: true,
-                errores: [{ msg: 'Ya existe un procedimiento con este nombre.' }],
-                procedimiento: { nombre },
-                precios
-            });
+            throw new Error('Ya existe un procedimiento con este nombre.');
         }
 
         // 3. Lógica para determinar el precioId
         let precioId;
+        let precioCreado = false;
+        let montoDelPrecio;
+
         if (precioNuevo && precioNuevo.trim() !== '') {
-            const nuevoPrecioGuardado = await Precio.create({  monto: precioNuevo });
-            precioId = nuevoPrecioGuardado.id;
-        } else if (precioExistente && precioExistente.trim() !== '') {
-            precioId = precioExistente;
-        } else {
-            // Si no se proporcionó precio, devolvemos un error.
-            const precios = await Precio.findAll({ order: [['monto', 'ASC']] });
-            return res.render('procedimientos/crear', {
-                pagina: 'Crear Procedimiento',
-                csrfToken: req.csrfToken(),
-                barra: true, piePagina: true,
-                errores: [{ msg: 'Debes seleccionar un precio existente o ingresar uno nuevo.' }],
-                procedimiento: { nombre },
-                precios
+            montoDelPrecio = precioNuevo.trim();
+            const [precio, creado] = await Precio.findOrCreate({
+                where: { monto: montoDelPrecio },
+                defaults: { monto: montoDelPrecio },
+                transaction: t
             });
+            precioId = precio.id;
+            precioCreado = creado;
+        } else {
+            precioId = precioExistente;
         }
 
-        // 4. Crear el procedimiento
-        await Procedimiento.create({
+        // 4. Crear el procedimiento y asociarlo con el precio
+        const nuevoProcedimiento = await Procedimiento.create({
             nombre,
-            precioId,
+            precioId: precioId,
             activo: true
-        });
+        }, { transaction: t });
 
-        res.redirect('/procedimientos/leer?guardado=1');
+        // 5. Registrar en auditoría
+        await Auditoria.create({
+            accion: 'CREAR',
+            tabla_afectada: 'procedimientos',
+            registro_id: nuevoProcedimiento.id,
+            descripcion: `El usuario ${nombreUsuario} creó el procedimiento: ${nombre}.`,
+            usuarioId
+        }, { transaction: t });
+
+        if (precioCreado) { // Si se creó un precio nuevo, también se audita
+            await Auditoria.create({
+                accion: 'CREAR',
+                tabla_afectada: 'precios',
+                registro_id: precioId,
+                descripcion: `El usuario ${nombreUsuario} creó un nuevo precio: ${montoDelPrecio}.`,
+                usuarioId
+            }, { transaction: t });
+        }
+
+        await t.commit();
+        res.redirect('/procedimientos/leer?mensaje=Procedimiento creado correctamente');
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al crear procedimiento:', error);
-        res.redirect('/procedimientos/leer?error=1');
+        const precios = await Precio.findAll({ order: [['monto', 'ASC']] });
+        return res.render('procedimientos/crear', {
+            pagina: 'Crear Procedimiento',
+            csrfToken: req.csrfToken(),
+            barra: true, piePagina: true,
+            errores: [{ msg: error.message }],
+            procedimiento: { nombre, precioExistente, precioNuevo },
+            precios
+        });
     }
 };
 
@@ -166,64 +196,100 @@ const editar = async (req, res) => {
 // FUNCIÓN 5: Procesar y guardar los cambios de un Procedimiento
 // =================================================================
 const actualizar = async (req, res) => {
-    const { id } = req.params;
-
-    // Validación
+    // 1. Validación
     await check('nombre').notEmpty().withMessage('El nombre del procedimiento es obligatorio').run(req);
-    await check('precioExistente').notEmpty().withMessage('Debe seleccionar un precio.').run(req);
-    const resultado = validationResult(req);
-    
-    const { nombre, precioExistente, activo } = req.body;
+    await check('precioExistente').custom((value, { req }) => {
+        if (!value && !req.body.precioNuevo) {
+            throw new Error('Debes seleccionar un precio existente o ingresar uno nuevo.');
+        }
+        return true;
+    }).run(req);
+    await check('precioNuevo').optional({ checkFalsy: true }).isDecimal().withMessage('El nuevo precio debe ser un número.').run(req);
 
+    const resultado = validationResult(req);
+    const { id } = req.params;
+    const { nombre, precioExistente, precioNuevo } = req.body;
+
+    // Si la validación falla
     if (!resultado.isEmpty()) {
         const [procedimiento, precios] = await Promise.all([
             Procedimiento.findByPk(id),
             Precio.findAll({ order: [['monto', 'ASC']] })
         ]);
         return res.render('procedimientos/editar', {
-            pagina: 'Editar Procedimiento',
+            pagina: `Editar: ${procedimiento.nombre}`,
             csrfToken: req.csrfToken(),
             barra: true, piePagina: true,
             errores: resultado.array(),
-            procedimiento: { ...procedimiento.dataValues, nombre, precioId: precioExistente, activo: activo === 'on' },
+            procedimiento: { id, nombre, precioExistente, precioNuevo },
             precios
         });
     }
 
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
+    const t = await db.transaction();
     try {
-        const procedimiento = await Procedimiento.findByPk(id);
-        if (!procedimiento) {
-            return res.redirect('/procedimientos/leer');
+        const procedimiento = await Procedimiento.findByPk(id, { transaction: t });
+        if (!procedimiento) throw new Error('Procedimiento no encontrado.');
+
+        // --- LÓGICA DE PRECIO REESTRUCTURADA ---
+        let precioId;
+        let precioCreado = false;
+        let montoDelPrecio;
+
+        // Se determina qué precio usar: el nuevo o el existente.
+        if (precioNuevo && precioNuevo.trim() !== '') {
+            montoDelPrecio = precioNuevo.trim();
+        } else {
+            const precioExistenteObj = await Precio.findByPk(precioExistente, { transaction: t });
+            if (precioExistenteObj) {
+                montoDelPrecio = precioExistenteObj.monto;
+            } else {
+                throw new Error('El precio seleccionado no es válido.');
+            }
         }
 
-        // Comprobar que el nuevo nombre no esté ya en uso por otro procedimiento
-        const existeOtroProcedimiento = await Procedimiento.findOne({
-            where: { nombre, id: { [Op.ne]: id } }
+        // Ahora que tenemos un monto garantizado, usamos findOrCreate
+        const [precio, creado] = await Precio.findOrCreate({
+            where: { monto: montoDelPrecio },
+            defaults: { monto: montoDelPrecio },
+            transaction: t
         });
+        precioId = precio.id;
+        precioCreado = creado;
 
-        if (existeOtroProcedimiento) {
-            const precios = await Precio.findAll({ order: [['monto', 'ASC']] });
-            return res.render('procedimientos/editar', {
-                pagina: 'Editar Procedimiento',
-                csrfToken: req.csrfToken(),
-                barra: true, piePagina: true,
-                errores: [{ msg: 'El nombre del procedimiento ya está en uso.' }],
-                procedimiento: { ...procedimiento.dataValues, nombre, precioId: precioExistente, activo: activo === 'on' },
-                precios
-            });
+
+        // 3. Registrar en auditoría
+        await Auditoria.create({
+            accion: 'MODIFICAR',
+            tabla_afectada: 'procedimientos',
+            registro_id: id,
+            descripcion: `El usuario ${nombreUsuario} actualizó el procedimiento: ${procedimiento.nombre}.`,
+            usuarioId
+        }, { transaction: t });
+
+        if (precioCreado) {
+            await Auditoria.create({
+                accion: 'CREAR',
+                tabla_afectada: 'precios',
+                registro_id: precioId,
+                descripcion: `El usuario ${nombreUsuario} creó un nuevo precio: ${montoDelPrecio}.`,
+                usuarioId
+            }, { transaction: t });
         }
 
-        // Actualizar datos
+        // 4. Actualizar el procedimiento
         procedimiento.nombre = nombre;
-        procedimiento.precioId = precioExistente; // En edición solo re-asignamos
-        procedimiento.activo = activo === 'on';
+        procedimiento.precioId = precioId;
+        await procedimiento.save({ transaction: t });
 
-        await procedimiento.save();
-        res.redirect('/procedimientos/leer?actualizado=1');
+        await t.commit();
+        res.redirect('/procedimientos/leer?mensaje=Procedimiento actualizado correctamente');
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al actualizar procedimiento:', error);
-        res.redirect('/procedimientos/leer?error=1');
+        // ... tu manejo de errores ...
     }
 };
 

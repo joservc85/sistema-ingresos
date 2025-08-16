@@ -16,7 +16,10 @@ const Actividad = db.define('actividades', {
     descripcion: {
         type: DataTypes.STRING(100),
         allowNull: true,
-        defaultValue: null
+        defaultValue: null,
+        set(value) {
+            this.setDataValue('descripcion', value.toUpperCase());
+        }
     },
     estado: {
         type: DataTypes.ENUM('Realizada', 'Anulada'),

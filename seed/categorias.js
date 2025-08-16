@@ -1,19 +1,19 @@
 const categorias = [
     {
-        nombre_categoria: 'Insumos de Manicura',
-        descripcion: 'Materiales y productos utilizados para los servicios de manicura y pedicura.'
+        nombre_categoria: 'INSUMOS DE MANICURA',
+        descripcion: 'MATERIALES Y PRODUCTOS UTILIZADOS PARA LOS SERVICIOS DE MANICURA Y PEDICURA.'
     },
     {
-        nombre_categoria: 'Servicios Públicos',
-        descripcion: 'Pagos de servicios básicos como electricidad, agua, gas, etc.'
+        nombre_categoria: 'SERVICIOS PÚBLICOS',
+        descripcion: 'PAGOS DE SERVICIOS BÁSICOS COMO ELECTRICIDAD, AGUA, GAS, ETC.'
     },
     {
-        nombre_categoria: 'Costos Operativos',
-        descripcion: 'Gastos fijos y variables necesarios para el funcionamiento del negocio, como alquiler y salarios.'
+        nombre_categoria: 'COSTOS OPERATIVOS',
+        descripcion: 'GASTOS FIJOS Y VARIABLES NECESARIOS PARA EL FUNCIONAMIENTO DEL NEGOCIO, COMO ALQUILER Y SALARIOS.'
     },
     {
-        nombre_categoria: 'Gastos Administrativos',
-        descripcion: 'Gastos relacionados con la administración y gestión del negocio.'
+        nombre_categoria: 'GASTOS ADMINISTRATIVOS',
+        descripcion: 'GASTOS RELACIONADOS CON LA ADMINISTRACIÓN Y GESTIÓN DEL NEGOCIO.'
     }
 ];
 

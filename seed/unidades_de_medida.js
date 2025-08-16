@@ -1,11 +1,10 @@
 const unidades_de_medida = [
-
-      { nombre: 'Unidad', abreviatura: 'unid', createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Kilo', abreviatura: 'kg', createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Gramo', abreviatura: 'g', createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Litro', abreviatura: 'L', createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Mililitro', abreviatura: 'ml', createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Pagos', abreviatura: 'p.', createdAt: new Date(), updatedAt: new Date() },
+    { nombre: 'UNIDAD', abreviatura: 'UNID', createdAt: new Date(), updatedAt: new Date() },
+    { nombre: 'KILO', abreviatura: 'KG', createdAt: new Date(), updatedAt: new Date() },
+    { nombre: 'GRAMO', abreviatura: 'G', createdAt: new Date(), updatedAt: new Date() },
+    { nombre: 'LITRO', abreviatura: 'L', createdAt: new Date(), updatedAt: new Date() },
+    { nombre: 'MILILITRO', abreviatura: 'ML', createdAt: new Date(), updatedAt: new Date() },
+    { nombre: 'PAGOS', abreviatura: 'P.', createdAt: new Date(), updatedAt: new Date() },
 ]
 
-export default unidades_de_medida
+export default unidades_de_medida;

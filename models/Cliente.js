@@ -6,11 +6,17 @@ import db from '../config/db.js';
 const Cliente = db.define('clientes', {
     nombre: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        set(value) {
+            this.setDataValue('nombre', value.toUpperCase());
+        }
     },
     apellidos: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        set(value) {
+            this.setDataValue('apellidos', value.toUpperCase());
+        }
     },
     cedula: {
         type: DataTypes.STRING(20), // Suficiente para C.C., C.E., NIT, etc.

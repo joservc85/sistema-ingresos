@@ -10,7 +10,10 @@ const Factura = db.define('facturas', {
     numero_factura: {
         type: DataTypes.STRING, // Ej: "F-001", "F-002"
         allowNull: false,
-        unique: true
+        unique: true,
+        set(value) {
+            this.setDataValue('numero_factura', value.toUpperCase());
+        }
     },
     fecha_emision: {
         type: DataTypes.DATE,

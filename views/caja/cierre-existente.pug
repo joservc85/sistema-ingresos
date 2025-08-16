@@ -6,11 +6,13 @@ block contenido
         h2(class="text-center text-2xl font-bold text-gray-700")= `Resumen del ${new Date(cierre.fecha_cierre + 'T12:00:00').toLocaleDateString('es-VE')}`
 
         div(class="mt-8 mx-auto max-w-2xl px-4")
-            //- Botón para regresar
-            div(class="flex justify-start mb-6")
-                a(href="/mis-actividades" class="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors")
-                    i(class="fas fa-arrow-left")
-                    span(class="font-bold") Inicio
+
+            if usuario && usuario.role && usuario.role.nombre === 'Admin'
+                form(method="GET" action="/cierre-caja" class="bg-white p-4 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row items-end gap-4")
+                    div(class="flex-grow w-full")
+                        label(for="fecha" class="block text-sm font-medium text-gray-700 mb-1") Consultar Otra Fecha
+                        input(type="date" name="fecha" value=cierre.fecha_cierre class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-fuchsia-500 focus:border-fuchsia-500")
+                    button(type="submit" class="w-full sm:w-auto flex-shrink-0 bg-fuchsia-600 text-white px-6 py-2 rounded-md font-bold hover:bg-fuchsia-700 transition cursor-pointer") Consultar
 
             //- Tarjeta con el resumen del cierre guardado
             div(class="bg-white p-6 md:p-8 rounded-lg shadow-lg border-t-4 border-yellow-400")

@@ -81,21 +81,37 @@ const mostrarCierre = async (req, res) => {
 
 // Guarda el cierre de caja en la base de datos
 const guardarCierre = async (req, res) => {
-    const { id: usuarioId } = req.usuario;
+    const { id: usuarioId, nombre: nombreUsuario } = req.usuario;
     const { fecha_cierre, total_efectivo_sistema, total_efectivo_contado, desglose_efectivo, descuadre, total_datafono, total_transferencia, total_vales, total_ventas_dia, observaciones } = req.body;
 
+    const t = await db.transaction();
     try {
         // Prevenir cierres duplicados
-        const cierreExistente = await CierreDeCaja.findOne({ where: { fecha_cierre } });
+        const cierreExistente = await CierreDeCaja.findOne({ 
+            where: { 
+                fecha_cierre,
+                estado: 'Consolidado' 
+            } 
+        });
         if (cierreExistente) {
-            return res.redirect(`/cierre-caja?fecha=${fecha_cierre}&error=Ya existe un cierre para esta fecha.`);
+            throw new Error('Ya existe un cierre consolidado para esta fecha.');
         }
 
-        await CierreDeCaja.create({
+        // Parsear el desglose de forma segura
+        let desgloseJSON = null;
+        if (desglose_efectivo && desglose_efectivo.trim() !== '{}') {
+            try {
+                desgloseJSON = JSON.parse(desglose_efectivo);
+            } catch (e) {
+                throw new Error('El formato del desglose de efectivo es inválido.');
+            }
+        }
+
+        const nuevoCierre = await CierreDeCaja.create({
             fecha_cierre,
             total_efectivo_sistema,
             total_efectivo_contado,
-            desglose_efectivo: JSON.parse(desglose_efectivo),
+            desglose_efectivo: desgloseJSON,
             descuadre,
             total_datafono,
             total_transferencia,
@@ -103,13 +119,33 @@ const guardarCierre = async (req, res) => {
             total_ventas_dia,
             observaciones,
             usuarioId
-        });
+        }, { transaction: t });
 
-        res.redirect('/mis-actividades?mensaje=Cierre de caja guardado exitosamente.');
+        // --- ¡REGISTRO DE AUDITORÍA AÑADIDO! ---
+        await Auditoria.create({
+            accion: 'CREAR',
+            tabla_afectada: 'cierres_de_caja',
+            registro_id: nuevoCierre.id,
+            descripcion: `El usuario ${nombreUsuario} guardó el cierre de caja del día ${fecha_cierre}.`,
+            usuarioId
+        }, { transaction: t });
+
+        await t.commit();
+        res.redirect('/cierre-caja/historial?mensaje=Cierre de caja guardado exitosamente.');
 
     } catch (error) {
+        await t.rollback();
         console.error('Error al guardar el cierre de caja:', error);
-        res.redirect(`/cierre-caja?fecha=${fecha_cierre}&error=No se pudo guardar el cierre.`);
+        
+        let mensajeError = 'No se pudo guardar el cierre.';
+        // Si es un error de validación de Sequelize, usamos un mensaje más específico.
+        if (error.name === 'SequelizeValidationError') {
+            mensajeError = error.errors.map(e => e.message).join(', ');
+        } else {
+            mensajeError = error.message;
+        }
+        
+        res.redirect(`/cierre-caja?fecha=${fecha_cierre}&error=${encodeURIComponent(mensajeError)}`);
     }
 };
 

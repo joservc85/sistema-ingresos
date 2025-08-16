@@ -9,7 +9,10 @@ const GastoAdministrativo = db.define('gastos_administrativos', {
     },
     descripcion: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: false,
+        set(value) {
+            this.setDataValue('descripcion', value.toUpperCase());
+        }
     },
     estado: {
         type: DataTypes.ENUM('Consolidado', 'Anulado'),

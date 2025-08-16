@@ -28,6 +28,7 @@ import cierreCajaRoutes from './routes/cierreCajaRoutes.js';
 import auditoriaRoutes from './routes/auditoriaRoutes.js';
 import reportesRoutes from './routes/reportesRoutes.js';
 import perfilRoutes from './routes/perfilRoutes.js';
+import bancoRoutes from './routes/bancoRoutes.js';
 
 // Importación de la Base de Datos
 import db from './config/db.js'
@@ -97,6 +98,7 @@ app.use('/ventas/ropa', ventaRopaRoutes);
 app.use('/cierre-caja', cierreCajaRoutes);
 app.use('/reportes', reportesRoutes);
 app.use('/perfil', perfilRoutes);
+app.use('/bancos', bancoRoutes);
 
 // --- 6. MANEJADOR DE ERRORES 404 ---
 app.use((req, res) => {

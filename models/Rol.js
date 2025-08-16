@@ -5,8 +5,12 @@ const Rol = db.define('roles', {
     nombre: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true
-    }
+        unique: true,
+        set(value) {
+            this.setDataValue('nombre', value.toUpperCase());
+        }
+    },
+    
 }, {
     timestamps: false // No necesitamos las columnas createdAt/updatedAt para esta tabla
 });
