@@ -14,11 +14,11 @@ const precios = [
     { monto: 230000.00, activo: true },
     { monto: 250000.00, activo: true },
     { monto: 150000.00, activo: true },
-    { monto: 90000.00, activo: true },
-    { monto: 100000.00, activo: true },
-    { monto: 110000.00, activo: true },
+    { monto: 85000.00, activo: true },
+    { monto: 105000.00, activo: true },
+    { monto: 115000.00, activo: true },
     { monto: 120000.00, activo: true },
-    { monto: 110000.00, activo: true },
+    { monto: 125000.00, activo: true },
     { monto: 130000.00, activo: true }
 ];
 

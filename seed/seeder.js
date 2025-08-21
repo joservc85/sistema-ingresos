@@ -28,6 +28,7 @@ const importarDatos = async () => {
             CategoriaArticulo.bulkCreate(categorias),
             UnidadDeMedida.bulkCreate(unidades_de_medida),
             Precio.bulkCreate(precios),
+            Procedimiento.bulkCreate(procedimientos),
             Personal.bulkCreate(personals),
             Banco.bulkCreate(bancos),
             FormaDePago.bulkCreate(formasDePago)
@@ -43,9 +44,7 @@ const importarDatos = async () => {
         ]);
         console.log('Paso 2: Usuarios y Artículos importados.');
 
-        // --- PASO 3: Insertar datos que dependen de los pasos anteriores ---
-        // Procedimientos depende de Precios
-        await Procedimiento.bulkCreate(procedimientos);
+           
         console.log('Paso 3: Procedimientos importados.');
 
         console.log('¡Datos Importados Correctamente!');

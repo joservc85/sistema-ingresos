@@ -13,10 +13,13 @@ block contenido
         //- Contenedor principal
         div(class="mt-8 mx-auto max-w-7xl px-4")
             //- Botón "Nuevo Procedimiento" adaptado
-            div(class="flex justify-start mb-6")
+            div(class="flex flex-col sm:flex-row justify-start items-center gap-4 mb-6")
                 a(href="/procedimientos/crear" class="flex items-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-md transition-all")
                     i(class="fas fa-plus")
                     span Nuevo Procedimiento
+                a(href="/precios/nuevo" class="w-full sm:w-auto flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold py-2 px-4 rounded-md transition-all")
+                    i(class="fas fa-dollar-sign")
+                    span Registrar Precio
 
             //- Contenedor de las tarjetas de procedimientos
             if procedimientos.length

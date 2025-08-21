@@ -14,11 +14,11 @@ const procedimientos = [
     { nombre: 'CEJAS EFECTO POLVO', activo: true, precioId: 13 },
     { nombre: 'CEJAS EFECTO MIXTO', activo: true, precioId: 14 },
     { nombre: 'CEJAS EFECTO PELO A PELO', activo: true, precioId: 15 },
-    { nombre: 'PESTAÑAS PELO A PELO', activo: true, precioId: 16 },
-    { nombre: 'PESTAÑAS 2D', activo: true, precioId: 17 },
-    { nombre: 'PESTAÑAS 3D', activo: true, precioId: 18 },
+    { nombre: 'PESTAÑAS PELO A PELO', activo: true, precioId: 2 },
+    { nombre: 'PESTAÑAS 2D', activo: true, precioId: 10 },
+    { nombre: 'PESTAÑAS 3D', activo: true, precioId: 1 },
     { nombre: 'PESTAÑAS 4D', activo: true, precioId: 19 },
-    { nombre: 'PESTAÑAS EFECTO HUMEDO', activo: true, precioId: 20 },
+    { nombre: 'PESTAÑAS EFECTO HUMEDO', activo: true, precioId: 1 },
     { nombre: 'PESTAÑAS WISPI', activo: true, precioId: 21 }
 ];
 

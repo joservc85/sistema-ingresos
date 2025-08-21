@@ -1,0 +1,67 @@
+extends ../layout/index
+
+block contenido
+    div(class="py-10")
+        //- Título adaptado para "Nuevo Precio"
+        h1(class="text-4xl my-10 font-extrabold text-center") Registrar 
+            span(class="font-normal") Nuevo Precio
+
+        div(class="bg-white shadow py-8 px-4 rounded-lg max-w-md mx-auto")
+            //- El botón "Regresar" ahora apunta a la lista de procedimientos
+            div(class="flex justify-start mb-6")
+                a(href="/procedimientos/leer" class="flex items-center gap-2 text-gray-600 hover:text-gray-800")
+                    i(class="fas fa-arrow-left")
+                    span(class="font-bold") Regresar
+            
+            //- La sección de errores se mantiene igual
+            if errores
+                div(class="mb-6")
+                    each error in errores
+                        p(class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2 font-bold")= error.msg
+
+            form(method="POST")
+                input(type="hidden" name="_csrf" value=csrfToken)
+                //- Campo para el Monto del Precio
+                div
+                    label(for="monto-formateado" class="block text-sm font-medium text-gray-700") Monto del Precio
+                    
+                    //- 1. Este es el campo que el usuario VE y escribe. Es de tipo texto.
+                    input#monto-formateado(
+                        type="text" 
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                        placeholder="Ej: 100.000"
+                        value=datos.monto ? Number(datos.monto).toLocaleString('es-CO') : ''
+                    )
+                    
+                    //- 2. Este es el campo OCULTO que se envía al servidor con el número limpio.
+                    input#monto(type="hidden" name="monto")
+
+                div(class="mt-8")
+                    //- CAMBIO 3: Texto del botón actualizado
+                    input(type="submit" value="Guardar Precio" class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 cursor-pointer rounded-lg")
+
+block scripts
+    script.
+        document.addEventListener('DOMContentLoaded', () => {
+            const campoVisible = document.getElementById('monto-formateado');
+            const campoOculto = document.getElementById('monto');
+
+            // Este único evento se encargará de todo
+            campoVisible.addEventListener('input', (e) => {
+                // 1. Tomar el valor y limpiarlo para que solo queden números
+                const valorLimpio = e.target.value.replace(/\D/g, '');
+                
+                // 2. Actualizar el campo oculto INMEDIATAMENTE con el valor limpio
+                // Esto es lo que soluciona el error de validación.
+                campoOculto.value = valorLimpio;
+                
+                // 3. Formatear el número para mostrarlo bonito en el campo visible
+                if (valorLimpio === '') {
+                    e.target.value = ''; // Si no hay nada, dejarlo vacío
+                } else {
+                    const numero = parseInt(valorLimpio, 10);
+                    // 'es-CO' usa puntos para los miles. Cambia si necesitas comas.
+                    e.target.value = numero.toLocaleString('es-CO'); 
+                }
+            });
+        });
