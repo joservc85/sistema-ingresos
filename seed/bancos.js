@@ -3,6 +3,8 @@ const bancos = [
     { id: 2, nombre: 'DAVIVIENDA' },
     { id: 3, nombre: 'BANCO DE BOGOTA' },
     { id: 4, nombre: 'BBVA' },
+    { id: 5, nombre: 'NEQUI' },
+    { id: 6, nombre: 'DAVIPLATA' },
     // ... añade todos los bancos que necesites
 ];
 export default bancos;

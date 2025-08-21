@@ -5,10 +5,7 @@ const Rol = db.define('roles', {
     nombre: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
-        set(value) {
-            this.setDataValue('nombre', value.toUpperCase());
-        }
+        unique: true
     },
     
 }, {

@@ -12,19 +12,28 @@ const Articulo = db.define('Articulo', {
                 msg: 'El nombre del artículo no puede ir vacío'
             }
         },
-        set(value) {
+       set(value) { // El parámetro es 'value'
+        if (value) {
+            // Usamos 'value' aquí también. ¡Problema resuelto!
             this.setDataValue('nombre_articulo', value.toUpperCase());
+        } else {
+            this.setDataValue('nombre_articulo', null);
         }
+    }
     },
     descripcion: {
         type: DataTypes.TEXT,
         allowNull: true,
         set(value) {
-            this.setDataValue('descripcion', value.toUpperCase());
+            if(value){
+                this.setDataValue('descripcion', value.toUpperCase());
+            }else{
+                this.setDataValue('descripcion', null);
+            }
         }
     },
     // El campo 'unidad_medida' de tipo texto se elimina.
-    
+
     activo: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

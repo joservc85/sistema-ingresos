@@ -128,8 +128,8 @@ Cliente.hasMany(VentaRopa, { foreignKey: 'clienteId' });
 
 // --- NUEVAS RELACIONES PARA CIERRE DE CAJA ---
 // Relaciones para Actividad
-Actividad.belongsTo(FormaDePago, { foreignKey: 'formaDePagoId' });
-Actividad.belongsTo(Banco, { foreignKey: 'bancoId' });
+// Actividad.belongsTo(FormaDePago, { foreignKey: 'formaDePagoId' });
+// Actividad.belongsTo(Banco, { foreignKey: 'bancoId' });
 // Una Actividad ahora puede tener MUCHOS Pagos
 Actividad.hasMany(PagoActividad, { foreignKey: 'actividadId' });
 PagoActividad.belongsTo(Actividad, { foreignKey: 'actividadId' });

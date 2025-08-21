@@ -19,7 +19,7 @@ block contenido
             form(method="POST" action="/cierre-caja/guardar")
                 input(type="hidden" name="_csrf" value=csrfToken)
                 input(type="hidden" name="fecha_cierre" value=fechaSeleccionada)
-                input#total_efectivo_sistema(type="hidden" name="total_efectivo_sistema" value=totalEfectivo)
+                input#total_efectivo_sistema(type="hidden" name="total_efectivo_sistema" value=totalEfectivoSistema)
                 input(type="hidden" name="total_datafono" value=totalDatafono)
                 input(type="hidden" name="total_transferencia" value=totalTransferencia)
                 input(type="hidden" name="total_vales" value=totalVales)
@@ -32,7 +32,7 @@ block contenido
                     div(class="space-y-3 text-lg")
                         div(class="flex justify-between items-center")
                             span(class="text-gray-600") Total en Efectivo (Sistema):
-                            span(class="font-semibold text-green-600") $#{totalEfectivo.toLocaleString('es-CO')}
+                            span(class="font-semibold text-green-600") $#{totalEfectivoSistema.toLocaleString('es-CO')}
                         div(class="flex justify-between items-center")
                             span(class="text-gray-600") Total en Datafono:
                             span(class="font-semibold text-green-600") $#{totalDatafono.toLocaleString('es-CO')}

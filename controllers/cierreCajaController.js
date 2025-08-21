@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Actividad, FormaDePago, Precio, CierreDeCaja, Usuario, Auditoria } from '../models/index.js';
+import { Actividad, FormaDePago, PagoActividad, CierreDeCaja, Usuario, Auditoria } from '../models/index.js';
 import db from '../config/db.js';
 
 // Muestra la vista del cierre de caja para una fecha específica
@@ -28,20 +28,29 @@ const mostrarCierre = async (req, res) => {
 
         const [actividadesDelDia, valesDelDia] = await Promise.all([
             Actividad.findAll({
-                where: { 
-                    createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, 
+                where: {
+                    createdAt: { [Op.between]: [inicioDelDia, finDelDia] },
                     vales: null,
-                    estado: 'Realizada' 
+                    estado: 'Realizada'
                 },
-                include: [Precio, FormaDePago]
+                include: [
+                    {
+                        model: PagoActividad,
+                        include: [FormaDePago]
+                    }
+                ]
             }),
             Actividad.findAll({
-                where: { 
-                    createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, 
-                    vales: { [Op.ne]: null } 
+                where: {
+                    createdAt: { [Op.between]: [inicioDelDia, finDelDia] },
+                    vales: { [Op.ne]: null }
                 }
             })
         ]);
+
+        console.log('--- RESULTADO DE LA CONSULTA ---');
+        console.log(JSON.stringify(actividadesDelDia, null, 2));
+        console.log('------------------------------');
 
         if (actividadesDelDia.length === 0 && valesDelDia.length === 0) {
             return res.redirect(`/mis-actividades?mensaje=No hay actividades o vales para cerrar en la fecha seleccionada.`);
@@ -51,15 +60,21 @@ const mostrarCierre = async (req, res) => {
         const totalVales = valesDelDia.reduce((total, vale) => total + parseFloat(vale.vales), 0);
 
         actividadesDelDia.forEach(actividad => {
-            const monto = parseFloat(actividad.precio?.monto || 0);
-            const formaDePago = actividad.formas_de_pago?.nombre || 'Efectivo';
+             if (actividad.pagos_actividads && actividad.pagos_actividads.length > 0) {
+                actividad.pagos_actividads.forEach(pago => {
+                    const monto = parseFloat(pago.monto || 0);
+                    // CORRECCIÓN 2: Usar 'formas_de_pago' (el nombre real que vimos en el console.log)
+                    const formaDePago = pago.formas_de_pago?.nombre;
 
-            if (formaDePago === 'Efectivo') totalEfectivo += monto;
-            else if (formaDePago === 'Datafono') totalDatafono += monto;
-            else if (formaDePago === 'Transferencia') totalTransferencia += monto;
+                    if (formaDePago === 'Efectivo') totalEfectivo += monto;
+                    else if (formaDePago === 'Datafono') totalDatafono += monto;
+                    else if (formaDePago === 'Transferencia') totalTransferencia += monto;
+                });
+            }
         });
 
         const totalVentasDia = totalEfectivo + totalDatafono + totalTransferencia;
+        const totalEfectivoSistema = totalEfectivo - totalVales;
 
         res.render('caja/cierre', {
             pagina: `Cierre de Caja - ${new Date(fechaQuery + 'T12:00:00').toLocaleDateString('es-VE')}`,
@@ -67,7 +82,7 @@ const mostrarCierre = async (req, res) => {
             barra: true,
             piePagina: true,
             fechaSeleccionada: fechaQuery,
-            totalEfectivo,
+            totalEfectivoSistema,
             totalDatafono,
             totalTransferencia,
             totalVales,
@@ -87,11 +102,11 @@ const guardarCierre = async (req, res) => {
     const t = await db.transaction();
     try {
         // Prevenir cierres duplicados
-        const cierreExistente = await CierreDeCaja.findOne({ 
-            where: { 
+        const cierreExistente = await CierreDeCaja.findOne({
+            where: {
                 fecha_cierre,
-                estado: 'Consolidado' 
-            } 
+                estado: 'Consolidado'
+            }
         });
         if (cierreExistente) {
             throw new Error('Ya existe un cierre consolidado para esta fecha.');
@@ -136,7 +151,7 @@ const guardarCierre = async (req, res) => {
     } catch (error) {
         await t.rollback();
         console.error('Error al guardar el cierre de caja:', error);
-        
+
         let mensajeError = 'No se pudo guardar el cierre.';
         // Si es un error de validación de Sequelize, usamos un mensaje más específico.
         if (error.name === 'SequelizeValidationError') {
@@ -144,7 +159,7 @@ const guardarCierre = async (req, res) => {
         } else {
             mensajeError = error.message;
         }
-        
+
         res.redirect(`/cierre-caja?fecha=${fecha_cierre}&error=${encodeURIComponent(mensajeError)}`);
     }
 };

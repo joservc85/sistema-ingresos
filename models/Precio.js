@@ -7,9 +7,6 @@ const Precio = db.define('precios', {
         allowNull: false,
         validate: {
             min: 0
-        },
-        unique: {
-            msg: 'El monto ingresado ya existe.'
         }
     },
     activo: {
