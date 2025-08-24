@@ -4,3 +4,9 @@ block contenido
     div(class="py-10 text-center")
         h1(class="text-4xl my-10 font-extrabold text-red-600")= pagina || 'Error Inesperado'
         h2(class="text-2xl font-bold")= mensaje || 'Hubo un error en el servidor.'
+
+        div(class="mt-10")
+            a(
+                href="/DamarisSpa" 
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg cursor-pointer"
+            ) Ir a la Página de Inicio de Sesión

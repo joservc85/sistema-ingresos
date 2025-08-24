@@ -1,5 +1,3 @@
-// Crea un nuevo archivo en: /public/js/modalCierre.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('modal-cierre');
     const cerrarModalBtn = document.getElementById('modal-cierre-cerrar');
@@ -35,6 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const cierre = await response.json();
             
+            // --- 1. CÁLCULO DEL GRAN TOTAL (AÑADIDO AQUÍ) ---
+            const totalEfectivo = parseFloat(cierre.total_efectivo_contado) || 0;
+            const totalDatafono = parseFloat(cierre.total_datafono) || 0;
+            const totalTransferencia = parseFloat(cierre.total_transferencia) || 0;
+            const granTotal = totalEfectivo + totalDatafono + totalTransferencia;
+
             // Actualizar título y cuerpo del modal
             const fechaFormateada = new Date(cierre.fecha_cierre + 'T12:00:00').toLocaleDateString('es-VE');
             modalTitulo.textContent = `Detalle del Cierre - ${fechaFormateada}`;
@@ -45,11 +49,17 @@ document.addEventListener('DOMContentLoaded', () => {
             modalCuerpo.innerHTML = `
                 <div class="space-y-3 text-lg">
                     <div class="flex justify-between"><span class="text-gray-600">Total Efectivo (Sistema):</span><span class="font-semibold">$${parseFloat(cierre.total_efectivo_sistema).toLocaleString('es-CO')}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-600">Total Efectivo (Contado):</span><span class="font-semibold text-blue-600">$${parseFloat(cierre.total_efectivo_contado).toLocaleString('es-CO')}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Total Efectivo (Contado):</span><span class="font-semibold text-blue-600">$${totalEfectivo.toLocaleString('es-CO')}</span></div>
                     <div class="flex justify-between"><span class="text-gray-600">Descuadre:</span><span class="font-bold ${cierre.descuadre < 0 ? 'text-red-600' : 'text-green-600'}">$${parseFloat(cierre.descuadre).toLocaleString('es-CO')}</span></div>
                     <div class="border-t pt-3 mt-3 space-y-3">
-                        <div class="flex justify-between"><span class="text-gray-600">Total Datafono:</span><span class="font-semibold">$${parseFloat(cierre.total_datafono).toLocaleString('es-CO')}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Total Transferencia:</span><span class="font-semibold">$${parseFloat(cierre.total_transferencia).toLocaleString('es-CO')}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Total Datafono:</span><span class="font-semibold">$${totalDatafono.toLocaleString('es-CO')}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Total Transferencia:</span><span class="font-semibold">$${totalTransferencia.toLocaleString('es-CO')}</span></div>
+                        
+                        <div class="flex justify-between border-t pt-3 mt-3">
+                            <span class="font-bold text-gray-800">TOTAL INGRESOS:</span>
+                            <span class="font-extrabold text-2xl text-green-600">$${granTotal.toLocaleString('es-CO')}</span>
+                        </div>
+                        
                         <div class="flex justify-between"><span class="text-gray-600">Total Vales:</span><span class="font-semibold text-red-600">-$${parseFloat(cierre.total_vales).toLocaleString('es-CO')}</span></div>
                     </div>
                     ${cierre.observaciones ? `<div class="mt-4 pt-4 border-t"><h4 class="font-bold">Observaciones:</h4><p class="text-base text-gray-600 bg-gray-50 p-2 rounded">${cierre.observaciones}</p></div>` : ''}

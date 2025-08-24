@@ -70,6 +70,26 @@ app.use(
 );
 app.use(csrf({cookie: true}))
 
+const manejadorDeErrores = (error, req, res, next) => {
+    // Logueamos el error completo en la consola para que tú lo veas
+    console.error('--- ERROR GLOBAL CAPTURADO ---');
+    console.error(error.stack);
+
+    let tituloPagina = 'Error Inesperado';
+    let mensajeError = 'Hubo un problema en el servidor. Por favor, intenta de nuevo.';
+
+    // Personalizamos el mensaje para el error específico de conexión
+    if (error.name === 'SequelizeConnectionAcquireTimeoutError') {
+        tituloPagina = 'Error de Conexión';
+        mensajeError = 'No se pudo comunicar con la base de datos. El servicio podría estar caído.';
+    }
+    
+    // Renderizamos tu vista 'error.pug' y le pasamos las variables
+    res.status(500).render('error', {
+        pagina: tituloPagina,
+        mensaje: mensajeError
+    });
+};
 // --- 5. RUTAS (Routing) ---
 
 // Ruta principal para el login
@@ -108,6 +128,9 @@ app.use((req, res) => {
         pagina: 'No Encontrada'
     })
 })
+
+// --- 6. MANEJADOR DE ERRORES 500 ---
+app.use(manejadorDeErrores);
 
 // --- 7. PUERTO Y ARRANQUE DEL SERVIDOR ---
 const port = process.env.PORT || 4000;

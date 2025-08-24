@@ -1,54 +1,77 @@
- //controllers/dashboardController.js
-import { Op } from 'sequelize';
-import { Actividad, Precio, Cliente } from '../models/index.js';
+// controllers/dashboardController.js
+import { Op, fn, col } from 'sequelize';
+// --- 1. AÑADE AperturaDeCaja AQUÍ ---
+import { Actividad, Precio, AperturaDeCaja } from '../models/index.js';
+import sequelize from '../config/db.js';
 
-// Muestra el panel de control con las métricas del día
 const mostrarDashboard = async (req, res) => {
     try {
-        // --- 1. CÁLCULO DE MÉTRICAS DEL DÍA ACTUAL ---
+        // --- DEFINIR RANGOS DE FECHA ---
         const hoy = new Date();
-        const fechaQuery = hoy.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-        const inicioDelDia = new Date(`${fechaQuery}T00:00:00.000-05:00`);
-        const finDelDia = new Date(`${fechaQuery}T23:59:59.999-05:00`);
+        const fechaQueryHoy = hoy.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+        const inicioDelDia = new Date(`${fechaQueryHoy}T00:00:00.000-05:00`);
+        const finDelDia = new Date(`${fechaQueryHoy}T23:59:59.999-05:00`);
 
-        const [actividadesDelDia, valesDelDia] = await Promise.all([
+        const fechaInicioSemana = new Date(inicioDelDia);
+        fechaInicioSemana.setDate(inicioDelDia.getDate() - 6);
+
+        // --- 2. MODIFICA ESTE BLOQUE PARA AÑADIR LA CONSULTA DE APERTURA ---
+        const [resultadosAgrupados, aperturaHoy] = await Promise.all([
             Actividad.findAll({
-                where: { createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, estado: 'Realizada', vales: null },
-                include: [Precio, Cliente]
+                attributes: [
+                    [fn('DATE', col('actividades.createdAt')), 'fecha'],
+                    [fn('SUM', col('precio.monto')), 'totalVentas'],
+                    [fn('COUNT', fn('DISTINCT', col('actividades.clienteId'))), 'clientesAtendidos'],
+                    [fn('SUM', col('vales')), 'totalVales']
+                ],
+                include: [{ model: Precio, as: 'precio', attributes: [] }],
+                where: {
+                    createdAt: { [Op.between]: [fechaInicioSemana, finDelDia] },
+                    estado: 'Realizada'
+                },
+                group: [fn('DATE', col('actividades.createdAt'))],
+                order: [[fn('DATE', col('actividades.createdAt')), 'ASC']],
+                raw: true
             }),
-            Actividad.findAll({
-                where: { createdAt: { [Op.between]: [inicioDelDia, finDelDia] }, vales: { [Op.ne]: null } }
+            // Esta es la nueva consulta que se añade
+            AperturaDeCaja.findOne({
+                where: { fecha_apertura: fechaQueryHoy }
             })
         ]);
 
-        const totalVentasHoy = actividadesDelDia.reduce((total, act) => total + parseFloat(act.precio?.monto || 0), 0);
-        const totalValesHoy = valesDelDia.reduce((total, vale) => total + parseFloat(vale.vales), 0);
-        const clientesAtendidosHoy = new Set(actividadesDelDia.map(act => act.clienteId)).size;
+        // Se crea la variable para la vista
+        const cajaAbierta = !!aperturaHoy;
 
-        // --- 2. CÁLCULO DE DATOS PARA EL GRÁFICO (ÚLTIMOS 7 DÍAS) ---
+        // --- PROCESAR LOS RESULTADOS (sin cambios) ---
+        let totalVentasHoy = 0;
+        let clientesAtendidosHoy = 0;
+        let totalValesHoy = 0;
+        const ventasPorDia = {};
+
+        resultadosAgrupados.forEach(item => {
+            const fecha = item.fecha;
+            ventasPorDia[fecha] = parseFloat(item.totalVentas || 0);
+
+            if (fecha === fechaQueryHoy) {
+                totalVentasHoy = parseFloat(item.totalVentas || 0);
+                clientesAtendidosHoy = parseInt(item.clientesAtendidos || 0, 10);
+                totalValesHoy = parseFloat(item.totalVales || 0);
+            }
+        });
+
+        // --- PREPARAR DATOS PARA EL GRÁFICO (sin cambios) ---
         const ventasUltimos7Dias = [];
         const etiquetasDias = [];
-
         for (let i = 6; i >= 0; i--) {
             const fecha = new Date();
             fecha.setDate(fecha.getDate() - i);
             const fechaFormateada = fecha.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
             
-            const inicio = new Date(`${fechaFormateada}T00:00:00.000-05:00`);
-            const fin = new Date(`${fechaFormateada}T23:59:59.999-05:00`);
-
-            const totalVentas = await Actividad.sum('precio.monto', {
-                include: [{ model: Precio, as: 'precio', attributes: [] }],
-                where: {
-                    createdAt: { [Op.between]: [inicio, fin] },
-                    estado: 'Realizada'
-                }
-            }) || 0;
-
-            ventasUltimos7Dias.push(totalVentas);
+            ventasUltimos7Dias.push(ventasPorDia[fechaFormateada] || 0);
             etiquetasDias.push(fecha.toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric' }));
         }
 
+        // --- 3. AÑADE la variable 'cajaAbierta' AL RENDERIZAR LA VISTA ---
         res.render('dashboard/index', {
             pagina: 'Panel de Control',
             barra: true,
@@ -58,11 +81,16 @@ const mostrarDashboard = async (req, res) => {
             clientesAtendidosHoy,
             totalValesHoy,
             ventasUltimos7Dias: JSON.stringify(ventasUltimos7Dias),
-            etiquetasDias: JSON.stringify(etiquetasDias)
+            etiquetasDias: JSON.stringify(etiquetasDias),
+            cajaAbierta // <-- Esta es la nueva variable para la vista
         });
 
     } catch (error) {
         console.error('Error al cargar el dashboard:', error);
+        res.status(500).render('error', {
+             pagina: 'Error en el Servidor',
+             mensaje: 'No se pudo cargar la información del dashboard. Intente más tarde.'
+        });
     }
 };
 
