@@ -1,7 +1,7 @@
 // controllers/dashboardController.js
 import { Op, fn, col } from 'sequelize';
 // --- 1. AÑADE AperturaDeCaja AQUÍ ---
-import { Actividad, Precio, AperturaDeCaja } from '../models/index.js';
+import { Actividad, Precio } from '../models/index.js';
 import sequelize from '../config/db.js';
 
 const mostrarDashboard = async (req, res) => {
@@ -34,13 +34,8 @@ const mostrarDashboard = async (req, res) => {
                 raw: true
             }),
             // Esta es la nueva consulta que se añade
-            AperturaDeCaja.findOne({
-                where: { fecha_apertura: fechaQueryHoy }
-            })
         ]);
 
-        // Se crea la variable para la vista
-        const cajaAbierta = !!aperturaHoy;
 
         // --- PROCESAR LOS RESULTADOS (sin cambios) ---
         let totalVentasHoy = 0;
@@ -81,8 +76,7 @@ const mostrarDashboard = async (req, res) => {
             clientesAtendidosHoy,
             totalValesHoy,
             ventasUltimos7Dias: JSON.stringify(ventasUltimos7Dias),
-            etiquetasDias: JSON.stringify(etiquetasDias),
-            cajaAbierta // <-- Esta es la nueva variable para la vista
+            etiquetasDias: JSON.stringify(etiquetasDias)
         });
 
     } catch (error) {
